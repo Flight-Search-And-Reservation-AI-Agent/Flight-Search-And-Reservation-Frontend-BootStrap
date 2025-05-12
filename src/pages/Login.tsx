@@ -23,7 +23,8 @@ const Login = () => {
             const res = await loginUser(form);
             // Save token or user info here if needed
             localStorage.setItem("token", res.token); // optional, depending on your backend
-            navigate("/dashboard"); // or wherever you want to redirect
+            localStorage.setItem("user", form.username)
+            navigate('/', { state: { fromLogin: true } });
         } catch (err: any) {
             const errMsg =
                 err.response?.data?.message ||

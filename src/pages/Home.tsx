@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/ui/Footer';
 import FlightSearchForm from '../components/ui/FlightSearchForm';
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+
 
 export default function MyComponent() {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -19,7 +22,19 @@ export default function MyComponent() {
         { title: "24/7 Customer Support", icon: "📞" },
         { title: "Secure Booking", icon: "🔒" },
     ];
+    const location = useLocation();
+    const navigate = useNavigate();
 
+    useEffect(() => {
+        if (location.state?.fromLogin) {
+            // Clear state to avoid infinite reload loop
+            navigate(location.pathname, { replace: true, state: {} });
+
+            // Trigger a hard reload
+            window.location.reload();
+        }
+    }, [location, navigate]);
+    
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
             <main className="flex-grow-1">

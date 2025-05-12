@@ -12,13 +12,13 @@ import Aircrafts from './pages/admin/Aircrafts'
 import Reservations from './pages/admin/Reservations'
 import Header from './components/ui/Header'
 import GroupDashboard from './pages/group/GroupDashboard'
-import GroupTripDashboard from './pages/group/GroupTripDaashBoard'
 import AddFlight from './pages/admin/helpers/AddFlight'
 import EditFlight from './pages/admin/helpers/EditFlight'
 import UserDashboard from './pages/UserDashboard'
 import CreateGroup from './pages/group/CreateGroup'
 import ReservationPage from './pages/ReservationPage'
 import EditProfile from './components/ui/EditProfile'
+import GroupTripDashboard from './pages/group/GroupTripDaashBoard'
 
 function App() {
 

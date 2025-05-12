@@ -73,23 +73,17 @@ export type ReservationRequest = {
   status: "BOOKED" | "CANCELLED";
 };
 
-export type Group = {
-    id: number;
-    name: string;
-    status: string;
-    destination: string;
-    dates: string;
-    members: string[];
-    image: string;
-    chat: string[];
-    polls: {
-        destinations: string[];
-        dates: string[];
-    };
-    checklist: {
-        task: string;
-        done: boolean;
-    }[];
-};
 
 
+export interface Group {
+    tripGroupId: string;
+    tripName: string;
+    tripDescription?: string;
+    status?: string;
+    tripAvatarUrl?: string;
+    createdBy?: User;
+    members: User[];
+    polls?: any[]; // Update when Poll interface is defined
+    tripNotes?: any[]; // Update when TripNote is defined
+    checklistItems?: any[];
+}

@@ -1,36 +1,81 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const CreateGroup: React.FC = () => {
-    const [name, setName] = useState('');
-    const [destination, setDestination] = useState('');
-    const [dates, setDates] = useState('');
+    const [tripName, setTripName] = useState('');
+    const [tripDescription, setTripDescription] = useState('');
+    const [tripDestination, setTripDestination] = useState('');
+    const [tripStartDate, setTripStartDate] = useState('');
+    const [tripEndDate, setTripEndDate] = useState('');
+    const [tripAvatarUrl, setTripAvatarUrl] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const userId = localStorage.getItem('userId');
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // You'd normally send this to backend
-        alert(`Group Created: ${name}`);
-        navigate('/dashboard/groups'); // or wherever your dashboard is
+        if (!userId) {
+            alert("User not logged in");
+            return;
+        }
+
+        const payload = {
+            tripName,
+            tripDescription,
+            tripDestination,
+            tripStartDate,
+            tripEndDate,
+            tripAvatarUrl,
+          
+        };
+
+        try {
+            setLoading(true);
+            await axios.post(`http://localhost:8080/api/v1/trip-groups?creatorUserId=${userId}`, payload);
+            navigate('/group', { state: { groupCreated: true } });
+        } catch (error) {
+            console.error('Failed to create group:', error);
+            alert('Error creating group. Try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
         <div className="container mt-5">
-            <h3>Create New Group</h3>
-            <form onSubmit={handleSubmit} className="mt-4">
+            <h3 className="mb-4">Create New Trip Group</h3>
+            <form onSubmit={handleSubmit}>
                 <div className="mb-3">
-                    <label className="form-label">Group Name</label>
-                    <input type="text" className="form-control" value={name} onChange={e => setName(e.target.value)} required />
+                    <label className="form-label">Trip Name</label>
+                    <input type="text" className="form-control" value={tripName} onChange={e => setTripName(e.target.value)} required />
+                </div>
+                <div className="mb-3">
+                    <label className="form-label">Description</label>
+                    <textarea className="form-control" rows={3} value={tripDescription} onChange={e => setTripDescription(e.target.value)} />
                 </div>
                 <div className="mb-3">
                     <label className="form-label">Destination</label>
-                    <input type="text" className="form-control" value={destination} onChange={e => setDestination(e.target.value)} required />
+                    <input type="text" className="form-control" value={tripDestination} onChange={e => setTripDestination(e.target.value)} required />
+                </div>
+                <div className="row">
+                    <div className="col-md-6 mb-3">
+                        <label className="form-label">Start Date</label>
+                        <input type="date" className="form-control" value={tripStartDate} onChange={e => setTripStartDate(e.target.value)} required />
+                    </div>
+                    <div className="col-md-6 mb-3">
+                        <label className="form-label">End Date</label>
+                        <input type="date" className="form-control" value={tripEndDate} onChange={e => setTripEndDate(e.target.value)} required />
+                    </div>
                 </div>
                 <div className="mb-3">
-                    <label className="form-label">Travel Dates</label>
-                    <input type="text" className="form-control" value={dates} onChange={e => setDates(e.target.value)} required />
+                    <label className="form-label">Trip Avatar URL (optional)</label>
+                    <input type="text" className="form-control" value={tripAvatarUrl} onChange={e => setTripAvatarUrl(e.target.value)} />
                 </div>
-                <button type="submit" className="btn btn-primary">Create Group</button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                    {loading ? 'Creating...' : 'Create Group'}
+                </button>
             </form>
         </div>
     );

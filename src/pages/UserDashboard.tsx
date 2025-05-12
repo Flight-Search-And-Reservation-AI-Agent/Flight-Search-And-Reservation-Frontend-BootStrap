@@ -1,50 +1,40 @@
-import { useEffect, useState } from "react";
-
-interface UserProfile {
-    username: string;
-    email: string;
-    fullName?: string;
-    createdAt?: string;
-}
-
-// const UserDashboard = () => {
-//     const [user, setUser] = useState<UserProfile | null>(null);
-
-//     useEffect(() => {
-//         // Replace with your actual API call
-//         const fetchUser = async () => {
-//             try {
-//                 const res = await fetch("/api/user/profile", {
-//                     headers: {
-//                         Authorization: `Bearer ${localStorage.getItem("token")}`,
-//                     },
-//                 });
-//                 const data = await res.json();
-//                 setUser(data);
-//             } catch (error) {
-//                 console.error("Failed to fetch user profile:", error);
-//             }
-//         };
-//         fetchUser();
-//     }, []);
+// src/pages/UserDashboard.tsx
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState } from "../redux/store";
+import { setUser } from "../redux/UserSlice";
 
 const UserDashboard = () => {
-    const [user, setUser] = useState<UserProfile | null>(null);
+    const dispatch = useDispatch();
+    const user = useSelector((state: RootState) => state.user.user);
+    const token = useSelector((state: RootState) => state.user.token);
 
     useEffect(() => {
-        // Dummy data for the user profile
+       
         const fetchUser = async () => {
-            const dummyUser: UserProfile = {
-                username: "john_doe",
-                email: "john.doe@example.com",
-                fullName: "John Doe",
-                createdAt: "2021-05-15T10:00:00Z",
-            };
-            setUser(dummyUser);
+            try {
+                if (!token) throw new Error('Token not found');
+                const res = await fetch(`http://localhost:8080/api/v1/users/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                });
+
+                if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
+                const userData = await res.json();
+                localStorage.setItem("userId",userData.userId);
+                dispatch(setUser(userData));  // Store user data in Redux
+            } catch (error) {
+                console.error('Failed to fetch user profile:', error);
+            }
         };
 
-        fetchUser();
-    }, []);
+        if (!user) fetchUser();  // Fetch user data if not in Redux
+    }, [token, dispatch, user]);
+  
+
+
 
     return (
         <div className="container py-5">
@@ -85,12 +75,6 @@ const UserDashboard = () => {
                                         <li>
                                             <strong>Full Name: </strong>
                                             {user?.fullName}
-                                        </li>
-                                    )}
-                                    {user?.createdAt && (
-                                        <li>
-                                            <strong>Joined: </strong>
-                                            {new Date(user?.createdAt).toLocaleDateString()}
                                         </li>
                                     )}
                                 </ul>
