@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import PollsSection from './PollsSection';
 import ChecklistPage from './CheckListSection';
 import EditTripModal from './EditTripModal';
-import type { Group, User } from '../../types';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
+import { addUserToGroup } from '../../api/api';
+import type { Group, User } from '../../types';
 
 const GroupTripDashboard = () => {
     const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+    const [users, setUsers] = useState<User[]>([]);
     const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'polls' | 'checklist'>('overview');
     const [showEditModal, setShowEditModal] = useState(false);
     const [showPollModal, setShowPollModal] = useState(false);
@@ -20,10 +22,11 @@ const GroupTripDashboard = () => {
     const [newPollQuestion, setNewPollQuestion] = useState("");
     const [newPollOptions, setNewPollOptions] = useState(["", ""]);
 
-    const { groupId } = useParams<{ groupId: string }>();
+    const [selectedUserId, setSelectedUserId] = useState("");
 
+    const { groupId } = useParams<{ groupId: string }>();
     const userId = localStorage.getItem('userId');
-    // Fetch group from backend
+
     const fetchGroup = async () => {
         try {
             const res = await axios.get(`http://localhost:8080/api/v1/trip-groups/${groupId}`);
@@ -33,8 +36,18 @@ const GroupTripDashboard = () => {
         }
     };
 
+    const fetchUsers = async () => {
+        try {
+            const res = await axios.get('http://localhost:8080/api/v1/users');
+            setUsers(res.data);
+        } catch (error) {
+            console.error("Failed to fetch users", error);
+        }
+    };
+
     useEffect(() => {
         fetchGroup();
+        fetchUsers();
     }, [groupId]);
 
     const handlePollOptionChange = (index: number, value: string) => {
@@ -85,24 +98,31 @@ const GroupTripDashboard = () => {
         }
     };
 
+    const handleAddUserToGroup = async () => {
+        if (!selectedUserId) return alert("Please select a user");
+        try {
+            await addUserToGroup(groupId!, selectedUserId);
+            alert("User added successfully");
+            setSelectedUserId("");
+            await fetchGroup();
+        } catch (error) {
+            alert("Failed to add user");
+        }
+    };
+
     if (!selectedGroup) return <div className="text-center mt-5">Loading...</div>;
 
     return (
         <main className="container py-5">
-            {/* Trip Header */}
             <div className="card mb-4">
                 <div className="card-body">
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h2>{selectedGroup.tripName}</h2>
-                            <div className="text-muted">
-                                {selectedGroup.dates} 
-                               
-                                {selectedGroup.status || 'Active'}
-                            </div>
+                            <div className="text-muted">{selectedGroup.dates} &bull; {selectedGroup.status || 'Active'}</div>
                         </div>
                         <button className="btn btn-primary" onClick={() => setShowEditModal(true)}>Edit Trip</button>
-                        {showEditModal && selectedGroup && (
+                        {showEditModal && (
                             <EditTripModal
                                 group={selectedGroup}
                                 onSave={handleSaveEdit}
@@ -111,7 +131,6 @@ const GroupTripDashboard = () => {
                         )}
                     </div>
 
-                    {/* Tabs Navigation */}
                     <ul className="nav nav-tabs mb-4">
                         {['overview', 'chat', 'polls', 'checklist'].map((tab) => (
                             <li className="nav-item" key={tab}>
@@ -125,22 +144,20 @@ const GroupTripDashboard = () => {
                         ))}
                     </ul>
 
-                    {/* Tabs Content */}
                     {activeTab === 'overview' && (
                         <div className="row">
-                            {/* Left Column */}
                             <div className="col-md-6 mb-4">
                                 <div className="card mb-3">
                                     <div className="card-body">
                                         <h5 className="card-title">Trip Summary</h5>
-                                        <p className="card-text text-muted">  {selectedGroup.tripDescription ? selectedGroup.tripDescription : 'No description available.'} &bull;  </p>
+                                        <p className="card-text text-muted">{selectedGroup.tripDescription || 'No description available.'}</p>
                                     </div>
                                 </div>
                                 <div className="card">
                                     <div className="card-body">
                                         <h5 className="card-title">Group Members</h5>
-                                        <div className="d-flex flex-wrap gap-2">
-                                            {selectedGroup.members.map((member: User, index) => (
+                                        <div className="d-flex flex-wrap gap-2 mb-3">
+                                            {selectedGroup.members.map((member, index) => (
                                                 <div key={index} className="d-flex align-items-center border rounded-pill px-3 py-2">
                                                     <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style={{ width: '30px', height: '30px' }}>
                                                         {member.username[0]}
@@ -149,11 +166,25 @@ const GroupTripDashboard = () => {
                                                 </div>
                                             ))}
                                         </div>
+                                        <div className="input-group">
+                                            <select
+                                                className="form-select"
+                                                value={selectedUserId}
+                                                onChange={(e) => setSelectedUserId(e.target.value)}
+                                            >
+                                                <option value="">Select a user to add</option>
+                                                {users.map((user) => (
+                                                    <option key={user.userId} value={user.userId}>
+                                                        {user.username} ({user.email})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <button className="btn btn-success" onClick={handleAddUserToGroup}>Add User</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Right Column: Quick Actions */}
                             <div className="col-md-6">
                                 <div className="card">
                                     <div className="card-body">
@@ -169,7 +200,7 @@ const GroupTripDashboard = () => {
                         </div>
                     )}
 
-                    {activeTab === 'polls' && selectedGroup && (
+                    {activeTab === 'polls' && (
                         <div className="card">
                             <div className="card-body">
                                 <h3 className="card-title">Polls</h3>
@@ -177,7 +208,6 @@ const GroupTripDashboard = () => {
                             </div>
                         </div>
                     )}
-
 
                     {activeTab === 'checklist' && (
                         <div className="card">
@@ -205,7 +235,7 @@ const GroupTripDashboard = () => {
 
             {/* Poll Modal */}
             {showPollModal && (
-                <div className="modal fade show" tabIndex="-1" aria-hidden="true" style={{ display: "block", backdropFilter: "blur(5px)" }}>
+                <div className="modal fade show" style={{ display: "block", backdropFilter: "blur(5px)" }}>
                     <div className="modal-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -214,35 +244,21 @@ const GroupTripDashboard = () => {
                             </div>
                             <div className="modal-body">
                                 <div className="mb-3">
-                                    <label htmlFor="pollQuestion" className="form-label">Poll Question</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="pollQuestion"
-                                        value={newPollQuestion}
-                                        onChange={(e) => setNewPollQuestion(e.target.value)}
-                                    />
+                                    <label className="form-label">Poll Question</label>
+                                    <input type="text" className="form-control" value={newPollQuestion} onChange={(e) => setNewPollQuestion(e.target.value)} />
                                 </div>
-                                <div className="mb-3">
-                                    <label htmlFor="pollOptions" className="form-label">Options</label>
-                                    {newPollOptions.map((option, index) => (
-                                        <div className="input-group mb-2" key={index}>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={option}
-                                                onChange={(e) => handlePollOptionChange(index, e.target.value)}
-                                            />
-                                            {index === newPollOptions.length - 1 && (
-                                                <button className="btn btn-outline-secondary" onClick={() => setNewPollOptions([...newPollOptions, ""])}>+</button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowPollModal(false)}>Close</button>
-                                <button type="button" className="btn btn-primary" onClick={addNewPoll}>Save Poll</button>
+                                {newPollOptions.map((option, index) => (
+                                    <div className="input-group mb-2" key={index}>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder={`Option ${index + 1}`}
+                                            value={option}
+                                            onChange={(e) => handlePollOptionChange(index, e.target.value)}
+                                        />
+                                    </div>
+                                ))}
+                                <button className="btn btn-primary" onClick={addNewPoll}>Create Poll</button>
                             </div>
                         </div>
                     </div>
@@ -251,7 +267,7 @@ const GroupTripDashboard = () => {
 
             {/* Checklist Modal */}
             {showChecklistModal && (
-                <div className="modal fade show" tabIndex="-1" aria-hidden="true" style={{ display: "block", backdropFilter: "blur(5px)" }}>
+                <div className="modal fade show" style={{ display: "block", backdropFilter: "blur(5px)" }}>
                     <div className="modal-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -260,39 +276,23 @@ const GroupTripDashboard = () => {
                             </div>
                             <div className="modal-body">
                                 <div className="mb-3">
-                                    <label htmlFor="checklistTask" className="form-label">Task</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="checklistTask"
-                                        value={newChecklistTask}
-                                        onChange={(e) => setNewChecklistTask(e.target.value)}
-                                    />
+                                    <label className="form-label">Task</label>
+                                    <input type="text" className="form-control" value={newChecklistTask} onChange={(e) => setNewChecklistTask(e.target.value)} />
                                 </div>
                                 <div className="mb-3">
-                                    <label htmlFor="assignedUser" className="form-label">Assigned To</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="assignedUser"
-                                        value={assignedUser}
-                                        onChange={(e) => setAssignedUser(e.target.value)}
-                                    />
+                                    <label className="form-label">Assign To</label>
+                                    <select className="form-select" value={assignedUser} onChange={(e) => setAssignedUser(e.target.value)}>
+                                        <option value="">Select User</option>
+                                        {selectedGroup.members.map((member) => (
+                                            <option key={member.userId} value={member.userId}>{member.username}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="mb-3">
-                                    <label htmlFor="dueDate" className="form-label">Due Date</label>
-                                    <input
-                                        type="date"
-                                        className="form-control"
-                                        id="dueDate"
-                                        value={dueDate}
-                                        onChange={(e) => setDueDate(e.target.value)}
-                                    />
+                                    <label className="form-label">Due Date</label>
+                                    <input type="date" className="form-control" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                                 </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowChecklistModal(false)}>Close</button>
-                                <button type="button" className="btn btn-primary" onClick={addNewChecklistItem}>Save Checklist Item</button>
+                                <button className="btn btn-primary" onClick={addNewChecklistItem}>Add Item</button>
                             </div>
                         </div>
                     </div>
@@ -303,4 +303,3 @@ const GroupTripDashboard = () => {
 };
 
 export default GroupTripDashboard;
-
