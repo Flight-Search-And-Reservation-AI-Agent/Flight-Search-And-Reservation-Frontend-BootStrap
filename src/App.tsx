@@ -19,6 +19,8 @@ import CreateGroup from './pages/group/CreateGroup'
 import ReservationPage from './pages/ReservationPage'
 import EditProfile from './components/ui/EditProfile'
 import GroupTripDashboard from './pages/group/GroupTripDaashBoard'
+import Users from './pages/admin/Users'
+import SearchResultsPage from './pages/SearchResultsPage'
 
 function App() {
 
@@ -28,6 +30,7 @@ function App() {
         <Header />
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/search-results" element={<SearchResultsPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<UserDashboard />} />
@@ -45,7 +48,7 @@ function App() {
             <Route path="/admin/flights/add" element={<AddFlight />} />
             <Route path="/admin/flights/edit/:id" element={<EditFlight />} />
             <Route path="aircrafts" element={<Aircrafts />} />
-        {/* <Route path="users" element={<Users />} /> */}
+        <Route path="users" element={<Users />} />
         <Route path="reservations" element={<Reservations />} />
           </Route>
         </Routes>

@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/ui/Footer';
-import FlightSearchForm from '../components/ui/FlightSearchForm';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-
+import FlightSearchForm from '../components/ui/FlightSearchForm';
 
 export default function MyComponent() {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);

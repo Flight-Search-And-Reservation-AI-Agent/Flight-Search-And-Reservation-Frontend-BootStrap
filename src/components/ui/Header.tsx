@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const Header = () => {
     const [isNavOpen, setIsNavOpen] = useState(false);
@@ -9,6 +9,7 @@ const Header = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [username, setUsername] = useState("");
 
+    const dropdownRef = useRef(null);
     const navigate = useNavigate();
 
     const toggleNav = () => setIsNavOpen(!isNavOpen);
@@ -22,6 +23,7 @@ const Header = () => {
         navigate("/login");
     };
 
+    // Scroll visibility logic
     useEffect(() => {
         const handleScroll = () => {
             const currentY = window.scrollY;
@@ -32,18 +34,37 @@ const Header = () => {
         return () => window.removeEventListener("scroll", handleScroll);
     }, [lastScrollY]);
 
+    // Auth check
     useEffect(() => {
         const token = localStorage.getItem("token");
         const user = localStorage.getItem("user");
         if (token && user) {
             setIsLoggedIn(true);
-            try {
-                setUsername(user || "User");
-            } catch {
-                setUsername("User");
-            }
+            setUsername(user || "User");
         }
     }, []);
+
+    // Click outside to close dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                dropdownRef.current &&
+                !(dropdownRef.current as HTMLElement).contains(event.target as Node)
+            ) {
+                setIsDropdownOpen(false);
+            }
+        };
+
+        if (isDropdownOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        } else {
+            document.removeEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isDropdownOpen]);
 
     return (
         <header className={`bg-white shadow-sm sticky-top border-bottom transition-all ${isVisible ? "top-0" : "-top-100"} z-1030`}>
@@ -80,7 +101,7 @@ const Header = () => {
                                 </Link>
                             </li>
                         ) : (
-                            <li className="nav-item dropdown position-relative ms-3">
+                            <li className="nav-item dropdown position-relative ms-3" ref={dropdownRef}>
                                 <button
                                     className="btn d-flex align-items-center border-0 bg-transparent"
                                     onClick={toggleDropdown}
@@ -98,14 +119,33 @@ const Header = () => {
                                 {isDropdownOpen && (
                                     <ul className="dropdown-menu show position-absolute end-0 mt-2">
                                         <li>
-                                            <Link className="dropdown-item" to="/dashboard">Profile</Link>
+                                            <button
+                                                className="dropdown-item"
+                                                onClick={() => {
+                                                    setIsDropdownOpen(false);
+                                                    navigate("/dashboard");
+                                                }}
+                                            >
+                                                Profile
+                                            </button>
                                         </li>
                                         <li>
-                                            <Link className="dropdown-item" to="/settings">Settings</Link>
+                                            <button
+                                                className="dropdown-item"
+                                                onClick={() => {
+                                                    setIsDropdownOpen(false);
+                                                    navigate("/settings");
+                                                }}
+                                            >
+                                                Settings
+                                            </button>
                                         </li>
                                         <li><hr className="dropdown-divider" /></li>
                                         <li>
-                                            <button className="dropdown-item text-danger" onClick={logout}>
+                                            <button
+                                                className="dropdown-item text-danger"
+                                                onClick={logout}
+                                            >
                                                 Logout
                                             </button>
                                         </li>

@@ -13,7 +13,6 @@ const GroupDashboard: React.FC = () => {
     useEffect(() => {
     const fetchGroups = async () => {
         if (!userId) return;
-        console.log(userId);
         try {
             const response = await axios.get(`http://localhost:8080/api/v1/trip-groups/my?userId=${userId}`);
             setGroups(response.data);
@@ -35,6 +34,9 @@ const GroupDashboard: React.FC = () => {
             navigate(`/group/${groupId}`, { state: group });
         }
     };
+
+    
+
 
     return (
         <div className="container py-4">
