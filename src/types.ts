@@ -8,6 +8,7 @@ export type Flight = {
   destinationAirportName:string;
   destinationAirportId: string;
   aircraftId: string;
+  airline: string;
   price: number;
 };
 
@@ -44,12 +45,12 @@ export type Aircraft = {
   capacity: number;
 };
 
-export type User = {
-  userId: string;
-  username: string;
-  email: string;
-  role: string;
-};
+// export type User = {
+//   userId: string;
+//   username: string;
+//   email: string;
+//   role: string;
+// };
 
 export type Reservation = {
   reservationId: string;
@@ -60,6 +61,7 @@ export type Reservation = {
   flight: {
     flightId: string;
     flightNumber: string;
+    departureTime: string;
   };
   seatNumber: string;
   status: "BOOKED" | "CANCELLED";
@@ -73,23 +75,28 @@ export type ReservationRequest = {
   status: "BOOKED" | "CANCELLED";
 };
 
-export type Group = {
-    id: number;
-    name: string;
-    status: string;
-    destination: string;
-    dates: string;
-    members: string[];
-    image: string;
-    chat: string[];
-    polls: {
-        destinations: string[];
-        dates: string[];
-    };
-    checklist: {
-        task: string;
-        done: boolean;
-    }[];
-};
 
+
+export interface Group {
+    tripGroupId: string;
+    tripName: string;
+    tripDescription?: string;
+    status?: string;
+    tripAvatarUrl?: string;
+    dates?: string;
+    createdBy?: User;
+    members: User[];
+    polls?: any[]; // Update when Poll interface is defined
+    tripNotes?: any[]; // Update when TripNote is defined
+    checklistItems?: any[];
+}
+
+
+export interface User {
+    userId: string;
+    username: string;
+    email: string;
+    role: "USER" | "ADMIN";
+    // add any other fields like phoneNumber, createdAt, etc.
+}
 

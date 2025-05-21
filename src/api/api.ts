@@ -1,6 +1,6 @@
 
 import axios from "axios";
-import type { Aircraft, Airport, AuthResponse, Flight, FlightRequest, Reservation, ReservationRequest } from "../types";
+import type { Aircraft, Airport, AuthResponse, Flight, FlightRequest, Reservation, ReservationRequest, User } from "../types";
 const API_BASE_URL = "http://localhost:8080/api/v1";
 const USER_BASE_URL = "http://localhost:8080/api";
 
@@ -16,6 +16,59 @@ const toISOLocalDateTime = (datetime: string): string => {
 };
 
 
+// Helper for handling fetch errors
+async function handleResponse(response: Response) {
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Something went wrong");
+    }
+    return response.json();
+}
+
+// GET /api/v1/users - Get all users (admin only)
+export async function fetchAllUsers(): Promise<User[]> {
+    const res = await fetch(`${API_BASE_URL}/users`, {
+        method: "GET",
+        credentials: "include",
+    });
+    return handleResponse(res);
+}
+
+// GET /api/v1/users/{userId} - Get user by ID
+export async function fetchUserById(userId: string): Promise<User> {
+    const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
+        method: "GET",
+        credentials: "include",
+    });
+    return handleResponse(res);
+}
+
+
+// PUT /api/v1/users/{userId} - Update user (admin or user)
+export async function updateUser(userId: string, updatedData: Partial<User>): Promise<User> {
+    const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(updatedData),
+    });
+    return handleResponse(res);
+}
+
+// DELETE /api/v1/users/{userId} - Delete user (admin only)
+export async function deleteUserById(userId: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
+        method: "DELETE",
+        credentials: "include",
+    });
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to delete user");
+    }
+}
 
 export const registerUser = async (userData: {
   username: string;
@@ -161,6 +214,13 @@ export const cancelReservation = async (id: string): Promise<void> => {
   await axios.delete(`${API_BASE_URL}/reservations/${id}`);
 };
 
+export const fetchUserReservations = async (userId: string) => {
+  const response = await axios.get(`${API_BASE_URL}/reservations/${userId}`, {
+    params: { userId },
+  });
+  return response.data;
+};
+
 
 //polls
 export const getAllPolls = async () => {
@@ -177,4 +237,56 @@ export const createPoll = async (data: { question: string; options: string[] }) 
   });
   if (!res.ok) throw new Error("Failed to create poll");
   return res.json();
+};
+
+const Group_BASE_URL = 'http://localhost:8080/api/v1/trip-groups'; // adjust base URL as needed
+
+// Get all polls for a specific trip group
+export const fetchPollsForTripGroup = (tripGroupId: number) => {
+  return axios.get(`${Group_BASE_URL}/${tripGroupId}/polls`);
+};
+
+// Create a new poll in a trip group
+export const createPollForTripGroup = (
+  tripGroupId: number,
+  pollData: {
+    question: string;
+    options: string[];
+  }
+) => {
+  return axios.post(`${Group_BASE_URL}/${tripGroupId}/polls/create`, pollData);
+};
+
+// Vote in a specific poll
+export const voteInPoll = (pollId: number, optionId: number) => {
+  return axios.post(`${Group_BASE_URL}/polls/${pollId}/vote`, { optionId });
+};
+
+// Delete a poll by its ID
+export const deletePoll = (pollId: number) => {
+  return axios.delete(`${Group_BASE_URL}/polls/${pollId}`);
+};
+
+// Update a poll
+export const updatePoll = (
+  pollId: number,
+  pollData: {
+    question: string;
+    options: {
+      optionId: number;
+      optionText: string;
+    }[];
+  }
+) => {
+  return axios.put(`${Group_BASE_URL}/polls/${pollId}`, pollData);
+};
+
+
+//group
+
+export const addUserToGroup = async (groupId: string, userId: string) => {
+  const response = await axios.post(`${API_BASE_URL}/trip-groups/${groupId}/members`, null, {
+    params: { userId },
+  });
+  return response.data;
 };

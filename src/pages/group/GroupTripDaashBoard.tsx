@@ -1,69 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import PollsSection from './PollsSection';
 import ChecklistPage from './CheckListSection';
-import type { Group } from '../../types';
 import EditTripModal from './EditTripModal';
-
-const mockGroups: Group[] = [
-    {
-        id: 1,
-        name: "Thailand Adventure",
-        status: "Planning",
-        destination: "Bangkok, Thailand",
-        dates: "Aug 15–30, 2024",
-        members: ["John", "Sarah", "Mike"],
-        image: "https://source.unsplash.com/400x300/?thailand,beach,sunset",
-        chat: ["Hey everyone!", "Can't wait for the trip!"],
-        polls: {
-            destinations: ["Bangkok", "Phuket", "Chiang Mai"],
-            dates: ["Aug 15–30", "Sep 1–15"],
-        },
-        checklist: [
-            { task: "Book Flights", done: false },
-            { task: "Reserve Hotels", done: true },
-        ],
-    },
-    {
-        id: 2,
-        name: "Europe Tour",
-        status: "Ongoing",
-        destination: "Paris, France",
-        dates: "Jul 1–15, 2024",
-        members: ["Emma", "David"],
-        image: "https://source.unsplash.com/400x300/?paris,eiffel,sunset",
-        chat: ["Meeting at the airport", "Got the tickets!"],
-        polls: {
-            destinations: ["Paris", "Rome", "Barcelona"],
-            dates: ["Jul 1–15", "Jul 15–30"],
-        },
-        checklist: [
-            { task: "Pack Essentials", done: true },
-            { task: "Exchange Currency", done: false },
-        ],
-    },
-];
+import axios from 'axios';
+import { useParams } from 'react-router-dom';
+import { addUserToGroup } from '../../api/api';
+import type { Group, User } from '../../types';
 
 const GroupTripDashboard = () => {
     const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+    const [users, setUsers] = useState<User[]>([]);
     const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'polls' | 'checklist'>('overview');
     const [showEditModal, setShowEditModal] = useState(false);
     const [showPollModal, setShowPollModal] = useState(false);
     const [showChecklistModal, setShowChecklistModal] = useState(false);
+
     const [newChecklistTask, setNewChecklistTask] = useState("");
     const [assignedUser, setAssignedUser] = useState("");
     const [dueDate, setDueDate] = useState("");
+
     const [newPollQuestion, setNewPollQuestion] = useState("");
     const [newPollOptions, setNewPollOptions] = useState(["", ""]);
 
-    useEffect(() => {
-        const groupId = 1;
-        const group = mockGroups.find((group) => group.id === groupId);
-        setSelectedGroup(group || null);
-    }, []);
+    const [selectedUserId, setSelectedUserId] = useState("");
 
-    if (!selectedGroup) {
-        return <div className="text-center my-5">Loading...</div>;
-    }
+    const { groupId } = useParams<{ groupId: string }>();
+    const userId = localStorage.getItem('userId');
+
+    const fetchGroup = async () => {
+        try {
+            const res = await axios.get(`http://localhost:8080/api/v1/trip-groups/${groupId}`);
+            setSelectedGroup(res.data);
+        } catch (error) {
+            console.error("Failed to fetch group", error);
+        }
+    };
+
+    const fetchUsers = async () => {
+        try {
+            const res = await axios.get('http://localhost:8080/api/v1/users');
+            setUsers(res.data);
+        } catch (error) {
+            console.error("Failed to fetch users", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchGroup();
+        fetchUsers();
+    }, [groupId]);
 
     const handlePollOptionChange = (index: number, value: string) => {
         const updatedOptions = [...newPollOptions];
@@ -71,53 +56,81 @@ const GroupTripDashboard = () => {
         setNewPollOptions(updatedOptions);
     };
 
-    const addNewPoll = () => {
-        if (newPollQuestion && newPollOptions.every(option => option.trim())) {
-            selectedGroup.polls.destinations.push(newPollQuestion);
-            selectedGroup.polls.dates.push(...newPollOptions);
+    const addNewPoll = async () => {
+        try {
+            await axios.post(`http://localhost:8080/api/v1/trip-groups/${groupId}/polls`, {
+                question: newPollQuestion,
+                options: newPollOptions,
+            });
+            await fetchGroup();
             setShowPollModal(false);
+            setNewPollQuestion("");
+            setNewPollOptions(["", ""]);
+        } catch (error) {
+            console.error("Failed to add poll", error);
         }
     };
 
-    const addNewChecklistItem = () => {
-        if (newChecklistTask.trim() && assignedUser && dueDate) {
-            selectedGroup.checklist.push({
+    const addNewChecklistItem = async () => {
+        try {
+            await axios.post(`http://localhost:8080/api/v1/trip-groups/${groupId}/checklist`, {
                 task: newChecklistTask,
                 assignedTo: assignedUser,
                 dueDate,
-                done: false,
             });
+            await fetchGroup();
+            setShowChecklistModal(false);
             setNewChecklistTask("");
             setAssignedUser("");
             setDueDate("");
-            setShowChecklistModal(false);
+        } catch (error) {
+            console.error("Failed to add checklist item", error);
         }
     };
 
+    const handleSaveEdit = async (updatedGroup: Group) => {
+        try {
+            await axios.put(`http://localhost:8080/api/v1/trip-groups/${groupId}`, updatedGroup);
+            await fetchGroup();
+            setShowEditModal(false);
+        } catch (error) {
+            console.error("Failed to update group", error);
+        }
+    };
+
+    const handleAddUserToGroup = async () => {
+        if (!selectedUserId) return alert("Please select a user");
+        try {
+            await addUserToGroup(groupId!, selectedUserId);
+            alert("User added successfully");
+            setSelectedUserId("");
+            await fetchGroup();
+        } catch (error) {
+            alert("Failed to add user");
+        }
+    };
+
+    if (!selectedGroup) return <div className="text-center mt-5">Loading...</div>;
 
     return (
         <main className="container py-5">
-            {/* Trip Header */}
             <div className="card mb-4">
                 <div className="card-body">
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2>{selectedGroup.name}</h2>
-                            <div className="text-muted">
-                                {selectedGroup.destination} &bull; {selectedGroup.dates}
-                            </div>
+                            <h2>{selectedGroup.tripName}</h2>
+                            <div className="text-muted">{selectedGroup.dates} &bull; {selectedGroup.status || 'Active'}</div>
                         </div>
                         <button className="btn btn-primary" onClick={() => setShowEditModal(true)}>Edit Trip</button>
-                        {showEditModal && selectedGroup && (
+                        {showEditModal && (
                             <EditTripModal
                                 group={selectedGroup}
-                                onSave={(updatedGroup) => setSelectedGroup(updatedGroup)}
+                                onSave={handleSaveEdit}
                                 onClose={() => setShowEditModal(false)}
                             />
                         )}
                     </div>
 
-                    {/* Tabs Navigation */}
                     <ul className="nav nav-tabs mb-4">
                         {['overview', 'chat', 'polls', 'checklist'].map((tab) => (
                             <li className="nav-item" key={tab}>
@@ -131,38 +144,47 @@ const GroupTripDashboard = () => {
                         ))}
                     </ul>
 
-                    {/* Tabs Content */}
                     {activeTab === 'overview' && (
                         <div className="row">
-                            {/* Left Column */}
                             <div className="col-md-6 mb-4">
                                 <div className="card mb-3">
                                     <div className="card-body">
                                         <h5 className="card-title">Trip Summary</h5>
-                                        <p className="card-text text-muted">
-                                            Join us for an unforgettable adventure! We'll be exploring beautiful
-                                            destinations, creating memories, and sharing amazing experiences together.
-                                        </p>
+                                        <p className="card-text text-muted">{selectedGroup.tripDescription || 'No description available.'}</p>
                                     </div>
                                 </div>
                                 <div className="card">
                                     <div className="card-body">
                                         <h5 className="card-title">Group Members</h5>
-                                        <div className="d-flex flex-wrap gap-2">
+                                        <div className="d-flex flex-wrap gap-2 mb-3">
                                             {selectedGroup.members.map((member, index) => (
                                                 <div key={index} className="d-flex align-items-center border rounded-pill px-3 py-2">
                                                     <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style={{ width: '30px', height: '30px' }}>
-                                                        {member[0]}
+                                                        {member.username[0]}
                                                     </div>
-                                                    <span>{member}</span>
+                                                    <span>{member.username}</span>
                                                 </div>
                                             ))}
+                                        </div>
+                                        <div className="input-group">
+                                            <select
+                                                className="form-select"
+                                                value={selectedUserId}
+                                                onChange={(e) => setSelectedUserId(e.target.value)}
+                                            >
+                                                <option value="">Select a user to add</option>
+                                                {users.map((user) => (
+                                                    <option key={user.userId} value={user.userId}>
+                                                        {user.username} ({user.email})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <button className="btn btn-success" onClick={handleAddUserToGroup}>Add User</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Right Column: Quick Actions */}
                             <div className="col-md-6">
                                 <div className="card">
                                     <div className="card-body">
@@ -182,7 +204,7 @@ const GroupTripDashboard = () => {
                         <div className="card">
                             <div className="card-body">
                                 <h3 className="card-title">Polls</h3>
-                                <PollsSection polls={selectedGroup.polls} />
+                                <PollsSection tripGroupId={selectedGroup.tripGroupId} userId={userId} />
                             </div>
                         </div>
                     )}
@@ -191,7 +213,7 @@ const GroupTripDashboard = () => {
                         <div className="card">
                             <div className="card-body">
                                 <h3 className="card-title">Checklist</h3>
-                                <ChecklistPage checklist={selectedGroup.checklist} />
+                                <ChecklistPage />
                             </div>
                         </div>
                     )}
@@ -201,7 +223,7 @@ const GroupTripDashboard = () => {
                             <div className="card-body">
                                 <h5 className="card-title">Group Chat</h5>
                                 <ul className="list-group list-group-flush">
-                                    {selectedGroup.chat.map((msg, idx) => (
+                                    {selectedGroup.tripNotes?.map((msg, idx) => (
                                         <li key={idx} className="list-group-item">{msg}</li>
                                     ))}
                                 </ul>
@@ -213,7 +235,7 @@ const GroupTripDashboard = () => {
 
             {/* Poll Modal */}
             {showPollModal && (
-                <div className="modal fade show" tabIndex="-1" aria-hidden="true" style={{ display: "block", backdropFilter: "blur(5px)" }}>
+                <div className="modal fade show" style={{ display: "block", backdropFilter: "blur(5px)" }}>
                     <div className="modal-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -222,35 +244,21 @@ const GroupTripDashboard = () => {
                             </div>
                             <div className="modal-body">
                                 <div className="mb-3">
-                                    <label htmlFor="pollQuestion" className="form-label">Poll Question</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="pollQuestion"
-                                        value={newPollQuestion}
-                                        onChange={(e) => setNewPollQuestion(e.target.value)}
-                                    />
+                                    <label className="form-label">Poll Question</label>
+                                    <input type="text" className="form-control" value={newPollQuestion} onChange={(e) => setNewPollQuestion(e.target.value)} />
                                 </div>
-                                <div className="mb-3">
-                                    <label htmlFor="pollOptions" className="form-label">Options</label>
-                                    {newPollOptions.map((option, index) => (
-                                        <div className="input-group mb-2" key={index}>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={option}
-                                                onChange={(e) => handlePollOptionChange(index, e.target.value)}
-                                            />
-                                            {index === newPollOptions.length - 1 && (
-                                                <button className="btn btn-outline-secondary" onClick={() => setNewPollOptions([...newPollOptions, ""])}>+</button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowPollModal(false)}>Close</button>
-                                <button type="button" className="btn btn-primary" onClick={addNewPoll}>Save Poll</button>
+                                {newPollOptions.map((option, index) => (
+                                    <div className="input-group mb-2" key={index}>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder={`Option ${index + 1}`}
+                                            value={option}
+                                            onChange={(e) => handlePollOptionChange(index, e.target.value)}
+                                        />
+                                    </div>
+                                ))}
+                                <button className="btn btn-primary" onClick={addNewPoll}>Create Poll</button>
                             </div>
                         </div>
                     </div>
@@ -259,7 +267,7 @@ const GroupTripDashboard = () => {
 
             {/* Checklist Modal */}
             {showChecklistModal && (
-                <div className="modal fade show" tabIndex="-1" aria-hidden="true" style={{ display: "block", backdropFilter: "blur(5px)" }}>
+                <div className="modal fade show" style={{ display: "block", backdropFilter: "blur(5px)" }}>
                     <div className="modal-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -268,51 +276,29 @@ const GroupTripDashboard = () => {
                             </div>
                             <div className="modal-body">
                                 <div className="mb-3">
-                                    <label htmlFor="checklistTask" className="form-label">Task</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="checklistTask"
-                                        value={newChecklistTask}
-                                        onChange={(e) => setNewChecklistTask(e.target.value)}
-                                    />
+                                    <label className="form-label">Task</label>
+                                    <input type="text" className="form-control" value={newChecklistTask} onChange={(e) => setNewChecklistTask(e.target.value)} />
                                 </div>
                                 <div className="mb-3">
-                                    <label htmlFor="assignedTo" className="form-label">Assign To</label>
-                                    <select
-                                        className="form-select"
-                                        id="assignedTo"
-                                        value={assignedUser}
-                                        onChange={(e) => setAssignedUser(e.target.value)}
-                                    >
-                                        <option value="">Select...</option>
-                                        {selectedGroup.members.map((member, index) => (
-                                            <option key={index} value={member}>{member}</option>
+                                    <label className="form-label">Assign To</label>
+                                    <select className="form-select" value={assignedUser} onChange={(e) => setAssignedUser(e.target.value)}>
+                                        <option value="">Select User</option>
+                                        {selectedGroup.members.map((member) => (
+                                            <option key={member.userId} value={member.userId}>{member.username}</option>
                                         ))}
                                     </select>
                                 </div>
-
                                 <div className="mb-3">
-                                    <label htmlFor="dueDate" className="form-label">Due Date</label>
-                                    <input
-                                        type="date"
-                                        className="form-control"
-                                        id="dueDate"
-                                        value={dueDate}
-                                        onChange={(e) => setDueDate(e.target.value)}
-                                    />
+                                    <label className="form-label">Due Date</label>
+                                    <input type="date" className="form-control" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                                 </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowChecklistModal(false)}>Close</button>
-                                <button type="button" className="btn btn-primary" onClick={addNewChecklistItem}>Add Task</button>
+                                <button className="btn btn-primary" onClick={addNewChecklistItem}>Add Item</button>
                             </div>
                         </div>
                     </div>
                 </div>
-            )
-            }
-        </main >
+            )}
+        </main>
     );
 };
 

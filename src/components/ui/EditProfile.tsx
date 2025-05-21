@@ -1,87 +1,139 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from 'react';
 
-interface UserProfile {
+interface User {
+    id: string;
     username: string;
     email: string;
-    fullName?: string;
-    createdAt?: string;
+    // Add more fields if needed
 }
 
-const EditProfile = () => {
-    const navigate = useNavigate();
-    const [user, setUser] = useState<UserProfile>({
-        username: "",
-        email: "",
-        fullName: "",
-    });
+const EditProfile: React.FC = () => {
+    const [user, setUser] = useState<User | null>(null);
+    const [formData, setFormData] = useState<Partial<User>>({});
+    const [loading, setLoading] = useState(true);
+    const [message, setMessage] = useState<string | null>(null);
 
+    // Fetch current user data
     useEffect(() => {
-        // Simulated fetch of current user data
-        const dummyUser: UserProfile = {
-            username: "john_doe",
-            email: "john.doe@example.com",
-            fullName: "John Doe",
+        const fetchUser = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setMessage('Authentication token not found.');
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8080/api/v1/users/me', {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to load user data (${response.status})`);
+                }
+
+                const data: User = await response.json();
+                setUser(data);
+                setFormData({ username: data.username, email: data.email });
+            } catch (error) {
+                console.error('Fetch error:', error);
+                setMessage('An error occurred while fetching user data');
+            } finally {
+                setLoading(false);
+            }
         };
-        setUser(dummyUser);
+
+        fetchUser();
     }, []);
 
+    // Handle input changes
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setUser((prev) => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    // Handle form submission
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Here you would send a PUT/PATCH request to the backend
-        navigate("/dashboard"); // Redirect after save
+        if (!user) return;
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setMessage('Authentication token not found.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/v1/users/${user.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Update failed: ${errorText}`);
+            }
+
+            const updatedUser: User = await response.json();
+            setUser(updatedUser);
+            setMessage('Profile updated successfully!');
+        } catch (error: any) {
+            console.error('Update error:', error);
+            setMessage(error.message || 'An error occurred while updating the profile');
+        }
     };
+
+    if (loading) return <div className="container mt-5">Loading...</div>;
 
     return (
-        <div className="container py-5">
-            <h2 className="text-center mb-4">Edit Profile</h2>
-            <div className="row justify-content-center">
-                <div className="col-md-6">
-                    <form onSubmit={handleSubmit} className="card p-4 shadow-sm rounded-4">
-                        <div className="mb-3">
-                            <label className="form-label">Username</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                value={user.username}
-                                disabled
-                            />
-                        </div>
-                        <div className="mb-3">
-                            <label className="form-label">Full Name</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                name="fullName"
-                                value={user.fullName || ""}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        <div className="mb-3">
-                            <label className="form-label">Email</label>
-                            <input
-                                type="email"
-                                className="form-control"
-                                name="email"
-                                value={user.email}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        <div className="text-center">
-                            <button type="submit" className="btn btn-primary px-4">
-                                Save Changes
-                            </button>
-                        </div>
-                    </form>
+        <div className="container mt-5">
+            <h2>Edit Profile</h2>
+
+            {message && (
+                <div className="alert alert-info" role="alert">
+                    {message}
                 </div>
-            </div>
+            )}
+
+            {user && (
+                <form onSubmit={handleSubmit}>
+                    <div className="mb-3">
+                        <label htmlFor="username" className="form-label">Username</label>
+                        <input
+                            type="text"
+                            name="username"
+                            id="username"
+                            className="form-control"
+                            value={formData.username || ''}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+
+                    <div className="mb-3">
+                        <label htmlFor="email" className="form-label">Email</label>
+                        <input
+                            type="email"
+                            name="email"
+                            id="email"
+                            className="form-control"
+                            value={formData.email || ''}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+
+                    {/* Add more fields as needed */}
+
+                    <button type="submit" className="btn btn-primary">Save Changes</button>
+                </form>
+            )}
         </div>
     );
 };

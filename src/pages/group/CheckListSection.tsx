@@ -1,37 +1,69 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useParams } from 'react-router-dom';
 
 type ChecklistItem = {
-    title: string;
+    itemId?: number;
+    task: string;
     assignedTo: string;
-    due: string;
     done: boolean;
 };
 
 const ChecklistPage: React.FC = () => {
-    const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
-        { title: 'Book Flights', assignedTo: 'Alice', due: 'May 20', done: true },
-        { title: 'Apply for Visa', assignedTo: 'Bob', due: 'May 25', done: false },
-        { title: 'Reserve Hotel', assignedTo: 'Charlie', due: 'June 1', done: false },
-    ]);
-
+    const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
     const [newItem, setNewItem] = useState<ChecklistItem>({
-        title: '',
+        task: '',
         assignedTo: '',
-        due: '',
         done: false,
     });
-
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-    const handleCheckboxToggle = (index: number) => {
-        const updatedItems = [...checklistItems];
-        updatedItems[index].done = !updatedItems[index].done;
-        setChecklistItems(updatedItems);
+    const { groupId } = useParams();
+
+    useEffect(() => {
+        fetchChecklist();
+    }, [groupId]);
+
+    const fetchChecklist = () => {
+        axios
+            .get(`http://localhost:8080/api/v1/trip-groups/${groupId}/checklist`)
+            .then((res) => setChecklistItems(res.data))
+            .catch((err) => console.error('Error fetching checklist:', err));
     };
 
-    const handleDelete = (index: number) => {
-        const updatedItems = checklistItems.filter((_, i) => i !== index);
+    const handleCheckboxToggle = async (index: number) => {
+        const item = checklistItems[index];
+        if (!item.itemId) return;
+
+        // Optimistically update local state
+        const updatedItems = [...checklistItems];
+        updatedItems[index] = { ...item, done: !item.done };
         setChecklistItems(updatedItems);
+
+        try {
+            await axios.patch(
+                `http://localhost:8080/api/v1/trip-groups/${groupId}/checklist/toggle/${item.itemId}`
+            );
+        } catch (err) {
+            console.error('Toggle error:', err);
+            // Revert change on failure
+            updatedItems[index] = item;
+            setChecklistItems(updatedItems);
+        }
+    };
+
+    const handleDelete = async (index: number) => {
+        const item = checklistItems[index];
+        if (!item.itemId) return;
+
+        try {
+            await axios.delete(
+                `http://localhost:8080/api/v1/trip-groups/${groupId}/checklist/${item.itemId}`
+            );
+            setChecklistItems(checklistItems.filter((_, i) => i !== index));
+        } catch (err) {
+            console.error('Delete error:', err);
+        }
     };
 
     const handleEdit = (index: number) => {
@@ -39,22 +71,39 @@ const ChecklistPage: React.FC = () => {
         setEditingIndex(index);
     };
 
-    const handleSave = () => {
-        if (editingIndex !== null) {
-            const updatedItems = [...checklistItems];
-            updatedItems[editingIndex] = newItem;
-            setChecklistItems(updatedItems);
-            setEditingIndex(null);
-        } else {
-            setChecklistItems([...checklistItems, newItem]);
-        }
+    const handleSave = async () => {
+        try {
+            if (editingIndex !== null) {
+                const itemId = checklistItems[editingIndex].itemId;
+                if (!itemId) return;
 
-        setNewItem({ title: '', assignedTo: '', due: '', done: false });
+                const res = await axios.put(
+                    `http://localhost:8080/api/v1/trip-groups/${groupId}/checklist/${itemId}`,
+                    newItem
+                );
+
+                const updatedItems = checklistItems.map((item, index) =>
+                    index === editingIndex ? res.data : item
+                );
+                setChecklistItems(updatedItems);
+                setEditingIndex(null);
+            } else {
+                const res = await axios.post(
+                    `http://localhost:8080/api/v1/trip-groups/${groupId}/checklist`,
+                    newItem
+                );
+                setChecklistItems([...checklistItems, res.data]);
+            }
+
+            setNewItem({ task: '', assignedTo: '', done: false });
+        } catch (err) {
+            console.error('Save error:', err);
+        }
     };
 
-    const completedCount = checklistItems.filter(item => item.done).length;
+    const completedCount = checklistItems.filter((item) => item.done).length;
     const totalCount = checklistItems.length;
-    const progressPercent = (completedCount / totalCount) * 100;
+    const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
     return (
         <div className="container py-5">
@@ -65,7 +114,7 @@ const ChecklistPage: React.FC = () => {
                     <div className="mb-3">
                         {checklistItems.map((item, index) => (
                             <div
-                                key={index}
+                                key={item.itemId || index}
                                 className="d-flex justify-content-between align-items-center bg-light p-3 rounded mb-2"
                             >
                                 <div className="d-flex align-items-start gap-3">
@@ -76,9 +125,9 @@ const ChecklistPage: React.FC = () => {
                                         onChange={() => handleCheckboxToggle(index)}
                                     />
                                     <div>
-                                        <p className="mb-1 fw-semibold">{item.title}</p>
+                                        <p className="mb-1 fw-semibold">{item.task}</p>
                                         <small className="text-muted">
-                                            Assigned to: {item.assignedTo} • Due: {item.due}
+                                            Assigned to: {item.assignedTo}
                                         </small>
                                     </div>
                                 </div>
@@ -121,18 +170,18 @@ const ChecklistPage: React.FC = () => {
                     <div className="mt-4">
                         <h5 className="mb-3">{editingIndex !== null ? 'Edit Item' : 'Add Item'}</h5>
                         <div className="row g-2 mb-2">
-                            <div className="col-md-4">
+                            <div className="col-md-5">
                                 <input
                                     type="text"
                                     className="form-control"
-                                    placeholder="Task Title"
-                                    value={newItem.title}
+                                    placeholder="Task"
+                                    value={newItem.task}
                                     onChange={(e) =>
-                                        setNewItem({ ...newItem, title: e.target.value })
+                                        setNewItem({ ...newItem, task: e.target.value })
                                     }
                                 />
                             </div>
-                            <div className="col-md-4">
+                            <div className="col-md-5">
                                 <input
                                     type="text"
                                     className="form-control"
@@ -143,18 +192,7 @@ const ChecklistPage: React.FC = () => {
                                     }
                                 />
                             </div>
-                            <div className="col-md-3">
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Due Date"
-                                    value={newItem.due}
-                                    onChange={(e) =>
-                                        setNewItem({ ...newItem, due: e.target.value })
-                                    }
-                                />
-                            </div>
-                            <div className="col-md-1">
+                            <div className="col-md-2">
                                 <button className="btn btn-success w-100" onClick={handleSave}>
                                     ✅
                                 </button>
