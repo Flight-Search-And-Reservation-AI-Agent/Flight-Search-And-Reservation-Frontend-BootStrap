@@ -6,9 +6,9 @@ import { searchFlights } from "../api/api";
 import type { Flight } from "../types";
 
 const airlineLogos: Record<string, string> = {
-    "IndiGo": "https://upload.wikimedia.org/wikipedia/en/thumb/e/e0/IndiGo_Logo.svg/1280px-IndiGo_Logo.svg.png",
-    "Vistara": "https://upload.wikimedia.org/wikipedia/en/thumb/e/e1/Vistara_logo.svg/1200px-Vistara_logo.svg.png",
-    "Air India": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Air_India_Logo.svg/512px-Air_India_Logo.svg.png",
+    "IndiGo": "src/assets/pic6.png",
+    "Vistara": "src/assets/pic6.png",
+    "Air India": "src/assets/pic5.png",
 };
 
 const SearchResultsPage: React.FC = () => {

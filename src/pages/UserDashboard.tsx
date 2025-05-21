@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../redux/store";
-import { setUser } from "../redux/UserSlice";
+import { setUser } from "../redux/userSlice";
 
 const UserDashboard = () => {
     const dispatch = useDispatch();
