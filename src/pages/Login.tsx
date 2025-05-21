@@ -24,6 +24,7 @@ const Login = () => {
             // Save token or user info here if needed
             localStorage.setItem("token", res.token); // optional, depending on your backend
             localStorage.setItem("user", form.username)
+            localStorage.setItem("role", res.role);
             navigate('/', { state: { fromLogin: true } });
         } catch (err: any) {
             const errMsg =

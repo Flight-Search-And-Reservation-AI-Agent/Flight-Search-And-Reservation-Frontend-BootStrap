@@ -1,11 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import PollsSection from './PollsSection';
 import ChecklistPage from './CheckListSection';
 import EditTripModal from './EditTripModal';
-import axios from 'axios';
 import { useParams } from 'react-router-dom';
-import { addUserToGroup } from '../../api/api';
+import { addUserToGroup, createPolls } from '../../api/api';
 import type { Group, User } from '../../types';
+import GroupChatBox from './GroupChatBox';
+import {
+    getGroupById,
+    fetchAllUsers,
+    createChecklistItems,
+    updateGroup,
+} from '../../api/api';
 
 const GroupTripDashboard = () => {
     const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -26,11 +32,12 @@ const GroupTripDashboard = () => {
 
     const { groupId } = useParams<{ groupId: string }>();
     const userId = localStorage.getItem('userId');
+    const username = localStorage.getItem('user');
 
     const fetchGroup = async () => {
         try {
-            const res = await axios.get(`http://localhost:8080/api/v1/trip-groups/${groupId}`);
-            setSelectedGroup(res.data);
+            const data = await getGroupById(groupId!);
+            setSelectedGroup(data);
         } catch (error) {
             console.error("Failed to fetch group", error);
         }
@@ -38,8 +45,8 @@ const GroupTripDashboard = () => {
 
     const fetchUsers = async () => {
         try {
-            const res = await axios.get('http://localhost:8080/api/v1/users');
-            setUsers(res.data);
+            const data = await fetchAllUsers();
+            setUsers(data);
         } catch (error) {
             console.error("Failed to fetch users", error);
         }
@@ -58,10 +65,7 @@ const GroupTripDashboard = () => {
 
     const addNewPoll = async () => {
         try {
-            await axios.post(`http://localhost:8080/api/v1/trip-groups/${groupId}/polls`, {
-                question: newPollQuestion,
-                options: newPollOptions,
-            });
+            await createPolls(groupId!, newPollQuestion, newPollOptions);
             await fetchGroup();
             setShowPollModal(false);
             setNewPollQuestion("");
@@ -73,11 +77,7 @@ const GroupTripDashboard = () => {
 
     const addNewChecklistItem = async () => {
         try {
-            await axios.post(`http://localhost:8080/api/v1/trip-groups/${groupId}/checklist`, {
-                task: newChecklistTask,
-                assignedTo: assignedUser,
-                dueDate,
-            });
+            await createChecklistItems(groupId!, newChecklistTask, assignedUser, dueDate);
             await fetchGroup();
             setShowChecklistModal(false);
             setNewChecklistTask("");
@@ -88,16 +88,16 @@ const GroupTripDashboard = () => {
         }
     };
 
+
     const handleSaveEdit = async (updatedGroup: Group) => {
         try {
-            await axios.put(`http://localhost:8080/api/v1/trip-groups/${groupId}`, updatedGroup);
+            await updateGroup(groupId!, updatedGroup);
             await fetchGroup();
             setShowEditModal(false);
         } catch (error) {
             console.error("Failed to update group", error);
         }
     };
-
     const handleAddUserToGroup = async () => {
         if (!selectedUserId) return alert("Please select a user");
         try {
@@ -119,7 +119,7 @@ const GroupTripDashboard = () => {
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h2>{selectedGroup.tripName}</h2>
-                            <div className="text-muted">{selectedGroup.dates} &bull; {selectedGroup.status || 'Active'}</div>
+                            <div className="text-muted">{selectedGroup.dates}  {selectedGroup.status || 'Active'}</div>
                         </div>
                         <button className="btn btn-primary" onClick={() => setShowEditModal(true)}>Edit Trip</button>
                         {showEditModal && (
@@ -204,7 +204,7 @@ const GroupTripDashboard = () => {
                         <div className="card">
                             <div className="card-body">
                                 <h3 className="card-title">Polls</h3>
-                                <PollsSection tripGroupId={selectedGroup.tripGroupId} userId={userId} />
+                                <PollsSection tripGroupId={selectedGroup.tripGroupId} userId={userId!} />
                             </div>
                         </div>
                     )}
@@ -222,14 +222,11 @@ const GroupTripDashboard = () => {
                         <div className="card">
                             <div className="card-body">
                                 <h5 className="card-title">Group Chat</h5>
-                                <ul className="list-group list-group-flush">
-                                    {selectedGroup.tripNotes?.map((msg, idx) => (
-                                        <li key={idx} className="list-group-item">{msg}</li>
-                                    ))}
-                                </ul>
+                                <GroupChatBox groupId={selectedGroup.tripGroupId} userId={userId!} username={username!} />
                             </div>
                         </div>
                     )}
+
                 </div>
             </div>
 
