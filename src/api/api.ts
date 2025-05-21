@@ -1,8 +1,8 @@
 
 import axios from "axios";
 import type { Aircraft, Airport, AuthResponse, Flight, FlightRequest, Reservation, ReservationRequest, User, Group, ChecklistItem, CreateTripGroupPayload } from "../types";
-const API_BASE_URL = "http://localhost:8080/api/v1";
-const USER_BASE_URL = "http://localhost:8080/api";
+const API_BASE_URL = "https://flightapp-backend-new.uc.r.appspot.com/v1";
+const USER_BASE_URL = "https://flightapp-backend-new.uc.r.appspot.com";
 
 const getAuthToken = () => {
   return localStorage.getItem("token"); // or sessionStorage based on your login setup
