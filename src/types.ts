@@ -19,6 +19,7 @@ export type AuthResponse = {
     username: string;
     email: string;
   };
+  role: string;
 };
 
 export interface FlightRequest {
@@ -99,4 +100,30 @@ export interface User {
     role: "USER" | "ADMIN";
     // add any other fields like phoneNumber, createdAt, etc.
 }
+
+export interface ChatMessage {
+  id?: number;
+  groupId: string;
+  senderId: string;
+  senderUsername: string;
+  content: string;
+  timestamp?: string;
+}
+
+export type ChecklistItem = {
+    itemId?: number;
+    task: string;
+    assignedTo: string;
+    done: boolean;
+};
+
+export type CreateTripGroupPayload = {
+  tripName: string;
+  tripDescription: string;
+  tripDestination: string;
+  tripStartDate: string;
+  tripEndDate: string;
+  tripAvatarUrl: string;
+};
+
 

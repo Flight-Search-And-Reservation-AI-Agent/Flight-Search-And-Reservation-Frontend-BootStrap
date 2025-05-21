@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { createTripGroup } from '../../api/api';
+import type { CreateTripGroupPayload } from '../../types';
 
 const CreateGroup: React.FC = () => {
     const [tripName, setTripName] = useState('');
@@ -14,26 +15,27 @@ const CreateGroup: React.FC = () => {
 
     const userId = localStorage.getItem('userId');
 
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         if (!userId) {
             alert("User not logged in");
             return;
         }
 
-        const payload = {
+        const payload: CreateTripGroupPayload = {
             tripName,
             tripDescription,
             tripDestination,
             tripStartDate,
             tripEndDate,
             tripAvatarUrl,
-          
         };
 
         try {
             setLoading(true);
-            await axios.post(`http://localhost:8080/api/v1/trip-groups?creatorUserId=${userId}`, payload);
+            await createTripGroup(userId, payload);
             navigate('/group', { state: { groupCreated: true } });
         } catch (error) {
             console.error('Failed to create group:', error);

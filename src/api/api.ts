@@ -1,8 +1,34 @@
 
 import axios from "axios";
-import type { Aircraft, Airport, AuthResponse, Flight, FlightRequest, Reservation, ReservationRequest, User } from "../types";
+import type { Aircraft, Airport, AuthResponse, Flight, FlightRequest, Reservation, ReservationRequest, User, Group, ChecklistItem, CreateTripGroupPayload } from "../types";
 const API_BASE_URL = "http://localhost:8080/api/v1";
 const USER_BASE_URL = "http://localhost:8080/api";
+
+const getAuthToken = () => {
+  return localStorage.getItem("token"); // or sessionStorage based on your login setup
+};
+
+// const authHeader = () => {
+//   const token = getAuthToken();
+//   return token ? { Authorization: `Bearer ${token}` } : {};
+// };
+
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+   withCredentials: true,
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
+
+
+axiosInstance.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 /**
  * Converts input datetime string (e.g. "2025-04-06T10:00") to ISO 8601 without Z
@@ -25,50 +51,35 @@ async function handleResponse(response: Response) {
     return response.json();
 }
 
+
 // GET /api/v1/users - Get all users (admin only)
 export async function fetchAllUsers(): Promise<User[]> {
-    const res = await fetch(`${API_BASE_URL}/users`, {
-        method: "GET",
-        credentials: "include",
-    });
-    return handleResponse(res);
+    const res = await axiosInstance.get<User[]>(`${API_BASE_URL}/users`);
+    return res.data;
 }
 
 // GET /api/v1/users/{userId} - Get user by ID
 export async function fetchUserById(userId: string): Promise<User> {
-    const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
-        method: "GET",
-        credentials: "include",
-    });
-    return handleResponse(res);
+    const res = await axiosInstance.get<User>(`${API_BASE_URL}/users/${userId}`);
+    return res.data;
 }
-
 
 // PUT /api/v1/users/{userId} - Update user (admin or user)
 export async function updateUser(userId: string, updatedData: Partial<User>): Promise<User> {
-    const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(updatedData),
-    });
-    return handleResponse(res);
+    const res = await axiosInstance.put<User>(`${API_BASE_URL}/users/${userId}`, updatedData);
+    return res.data;
 }
 
 // DELETE /api/v1/users/{userId} - Delete user (admin only)
 export async function deleteUserById(userId: string): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
-        method: "DELETE",
-        credentials: "include",
-    });
-
-    if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Failed to delete user");
+    try {
+        await axiosInstance.delete(`${API_BASE_URL}/users/${userId}`);
+    } catch (err: any) {
+        const errorText = err.response?.data || "Failed to delete user";
+        throw new Error(errorText);
     }
 }
+
 
 export const registerUser = async (userData: {
   username: string;
@@ -105,38 +116,38 @@ export const searchFlights = async (
   const formattedDate = toISOLocalDateTime(departureDate);
   const url = `${API_BASE_URL}/flights/search?origin=${origin}&destination=${destination}&departureDate=${formattedDate}`;
   
-  const response = await axios.get<Flight[]>(url);
+  const response = await axiosInstance.get<Flight[]>(url);
   return response.data;
 };
 
 export const getAllFlights = async (): Promise<Flight[]> => {
-  const response = await axios.get<Flight[]>(`${API_BASE_URL}/flights`);
+  const response = await axiosInstance.get<Flight[]>(`${API_BASE_URL}/flights`);
   return response.data;
 };
 
 export const deleteFlightById = async (id: string) => {
-  await axios.delete(`${API_BASE_URL}/flights/${id}`);
+  await axiosInstance.delete(`${API_BASE_URL}/flights/${id}`);
 };
 
 export const createFlight = async (flight: FlightRequest): Promise<void> => {
-  await axios.post(`${API_BASE_URL}/flights/add`, flight);
+  await axiosInstance.post(`${API_BASE_URL}/flights/add`, flight);
 };
 
 export const updateFlightById = async (
   id: string,
   flight: FlightRequest
 ): Promise<void> => {
-  await axios.put(`${API_BASE_URL}/flights/${id}`, flight);
+  await axiosInstance.put(`${API_BASE_URL}/flights/${id}`, flight);
 };
 
 export const getFlightById = async (id: string): Promise<FlightRequest> => {
-  const response = await axios.get<FlightRequest>(`${API_BASE_URL}/flights/${id}`);
+  const response = await axiosInstance.get<FlightRequest>(`${API_BASE_URL}/flights/${id}`);
   return response.data;
 };
 
 // 🛬 Airports
 export const getAllAirports = async (): Promise<Airport[]> => {
-  const response = await axios.get<Airport[]>(`${API_BASE_URL}/airports`);
+  const response = await axiosInstance.get<Airport[]>(`${API_BASE_URL}/airports`);
   return response.data;
 };
 
@@ -146,7 +157,7 @@ export const addAirport = async (airport: {
   country: string;
   code: string;
 }) => {
-  const response = await axios.post(`${API_BASE_URL}/airports`, airport);
+  const response = await axiosInstance.post(`${API_BASE_URL}/airports`, airport);
   return response.data;
 };
 
@@ -154,18 +165,18 @@ export const updateAirport = async (
   id: string,
   airport: { name: string; city: string; country: string; code: string }
 ) => {
-  const response = await axios.put(`${API_BASE_URL}/airports/${id}`, airport);
+  const response = await axiosInstance.put(`${API_BASE_URL}/airports/${id}`, airport);
   return response.data;
 };
 
 export const deleteAirport = async (id: string) => {
-  const response = await axios.delete(`${API_BASE_URL}/airports/${id}`);
+  const response = await axiosInstance.delete(`${API_BASE_URL}/airports/${id}`);
   return response.data;
 };
 
 // ✈️ Aircraft
 export const getAllAircraft = async (): Promise<Aircraft[]> => {
-  const response = await axios.get<Aircraft[]>(`${API_BASE_URL}/aircrafts`);
+  const response = await axiosInstance.get<Aircraft[]>(`${API_BASE_URL}/aircrafts`);
   return response.data;
 };
 
@@ -173,7 +184,7 @@ export const addAircraft = async (aircraft: {
   model: string;
   capacity: number;
 }) => {
-  const response = await axios.post(`${API_BASE_URL}/aircrafts`, aircraft);
+  const response = await axiosInstance.post(`${API_BASE_URL}/aircrafts`, aircraft);
   return response.data;
 };
 
@@ -181,24 +192,24 @@ export const updateAircraft = async (
   id: string,
   aircraft: { model: string; capacity: number }
 ) => {
-  const response = await axios.put(`${API_BASE_URL}/aircrafts/${id}`, aircraft);
+  const response = await axiosInstance.put(`${API_BASE_URL}/aircrafts/${id}`, aircraft);
   return response.data;
 };
 
 export const deleteAircraft = async (id: string) => {
-  const response = await axios.delete(`${API_BASE_URL}/aircrafts/${id}`);
+  const response = await axiosInstance.delete(`${API_BASE_URL}/aircrafts/${id}`);
   return response.data;
 };
 
 
 // Reservations
 export const getAllReservations = async (): Promise<Reservation[]> => {
-  const res = await axios.get<Reservation[]>(`${API_BASE_URL}/reservations`);
+  const res = await axiosInstance.get<Reservation[]>(`${API_BASE_URL}/reservations`);
   return res.data;
 };
 
 export const createReservation = async (data: ReservationRequest): Promise<Reservation> => {
-  const res = await axios.post<Reservation>(`${API_BASE_URL}/reservations`, data);
+  const res = await axiosInstance.post<Reservation>(`${API_BASE_URL}/reservations`, data);
   return res.data;
 };
 
@@ -206,44 +217,34 @@ export const updateReservation = async (
   id: string,
   data: ReservationRequest
 ): Promise<Reservation> => {
-  const res = await axios.put<Reservation>(`${API_BASE_URL}/reservations/${id}`, data);
+  const res = await axiosInstance.put<Reservation>(`${API_BASE_URL}/reservations/${id}`, data);
   return res.data;
 };
 
 export const cancelReservation = async (id: string): Promise<void> => {
-  await axios.delete(`${API_BASE_URL}/reservations/${id}`);
+  await axiosInstance.delete(`${API_BASE_URL}/reservations/${id}`);
 };
 
 export const fetchUserReservations = async (userId: string) => {
-  const response = await axios.get(`${API_BASE_URL}/reservations/${userId}`, {
+  const response = await axiosInstance.get(`${API_BASE_URL}/reservations/${userId}`, {
     params: { userId },
   });
   return response.data;
 };
 
 
-//polls
-export const getAllPolls = async () => {
-  const res = await fetch("/api/polls");
-  if (!res.ok) throw new Error("Failed to fetch polls");
-  return res.json();
-};
+// //polls
 
-export const createPoll = async (data: { question: string; options: string[] }) => {
-  const res = await fetch("/api/polls", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+export const createPolls = async (groupId: string, question: string, options: string[]) => {
+  await axiosInstance.post(`${API_BASE_URL}/trip-groups/${groupId}/polls`, {
+    question,
+    options,
   });
-  if (!res.ok) throw new Error("Failed to create poll");
-  return res.json();
 };
-
-const Group_BASE_URL = 'http://localhost:8080/api/v1/trip-groups'; // adjust base URL as needed
 
 // Get all polls for a specific trip group
 export const fetchPollsForTripGroup = (tripGroupId: number) => {
-  return axios.get(`${Group_BASE_URL}/${tripGroupId}/polls`);
+  return axiosInstance.get(`${API_BASE_URL}/trip-groups/${tripGroupId}/polls`);
 };
 
 // Create a new poll in a trip group
@@ -254,17 +255,17 @@ export const createPollForTripGroup = (
     options: string[];
   }
 ) => {
-  return axios.post(`${Group_BASE_URL}/${tripGroupId}/polls/create`, pollData);
+  return axiosInstance.post(`${API_BASE_URL}/trip-groups/${tripGroupId}/polls/create`, pollData);
 };
 
 // Vote in a specific poll
 export const voteInPoll = (pollId: number, optionId: number) => {
-  return axios.post(`${Group_BASE_URL}/polls/${pollId}/vote`, { optionId });
+  return axiosInstance.post(`${API_BASE_URL}/trip-groups/polls/${pollId}/vote`, { optionId });
 };
 
 // Delete a poll by its ID
 export const deletePoll = (pollId: number) => {
-  return axios.delete(`${Group_BASE_URL}/polls/${pollId}`);
+  return axiosInstance.delete(`${API_BASE_URL}/trip-groups/polls/${pollId}`);
 };
 
 // Update a poll
@@ -278,15 +279,123 @@ export const updatePoll = (
     }[];
   }
 ) => {
-  return axios.put(`${Group_BASE_URL}/polls/${pollId}`, pollData);
+  return axiosInstance.put(`${API_BASE_URL}/trip-groups/polls/${pollId}`, pollData);
+};
+
+
+export const fetchPollsByTripGroup = (tripGroupId: string) => {
+    return axiosInstance.get(`${API_BASE_URL}/trip-groups/${tripGroupId}/polls`);
+};
+
+export const fetchUserVotes = (userId: string) => {
+    return axiosInstance.get(`${API_BASE_URL}/user-vote/${userId}/votes`);
+};
+
+export const createNewPoll = (tripGroupId: string, poll: { question: string; options: string[]; anonymous: boolean }) => {
+    return axiosInstance.post(`${API_BASE_URL}/trip-groups/${tripGroupId}/polls/create`, poll);
+};
+
+export const voteOnPollOption = (tripGroupId: string, pollId: string, optionId: string, userId: string) => {
+    return axiosInstance.post(`${API_BASE_URL}/trip-groups/${tripGroupId}/polls/${pollId}/vote/${optionId}?userId=${userId}`);
+};
+
+export const deletePollById = (tripGroupId: string, pollId: string) => {
+    return axiosInstance.delete(`${API_BASE_URL}/trip-groups/${tripGroupId}/polls/${pollId}`);
 };
 
 
 //group
+
+export const createTripGroup = async (userId: string, payload: CreateTripGroupPayload) => {
+  if (!userId) {
+    throw new Error('User ID is required to create a trip group.');
+  }
+
+  const response = await axiosInstance.post(
+    `${API_BASE_URL}/trip-groups?creatorUserId=${userId}`,
+    payload
+  );
+
+  return response.data;
+};
+
+export const getGroupById = async (groupId: string) => {
+  const response = await axiosInstance.get(`${API_BASE_URL}/trip-groups/${groupId}`);
+  return response.data;
+};
+
+
+export const getUserTripGroups = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`${API_BASE_URL}/trip-groups/my`, {
+      params: { userId },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching trip groups:", error);
+    throw error; // Let the caller handle the error
+  }
+};
+
 
 export const addUserToGroup = async (groupId: string, userId: string) => {
   const response = await axios.post(`${API_BASE_URL}/trip-groups/${groupId}/members`, null, {
     params: { userId },
   });
   return response.data;
+};
+
+
+export const updateGroup = async (groupId: string, updatedGroup: Group) => {
+  await axiosInstance.put(`${API_BASE_URL}/trip-groups/${groupId}`, updatedGroup);
+};
+
+export const deleteTripGroup = async (groupId: string, userId: string) => {
+  await axiosInstance.delete(`${API_BASE_URL}/trip-groups/${groupId}`, {
+    params: { userId },
+  });
+};
+
+
+//Checklist
+export const createChecklistItems = async (
+  groupId: string,
+  task: string,
+  assignedTo: string,
+  dueDate: string
+) => {
+  await axiosInstance.post(`${API_BASE_URL}/trip-groups/${groupId}/checklist`, {
+    task,
+    assignedTo,
+    dueDate,
+  });
+};
+
+
+
+export const fetchChecklistItems = async (groupId: string) => {
+  const res = await axiosInstance.get(`${API_BASE_URL}/trip-groups/${groupId}/checklist`);
+  return res.data;
+};
+
+export const toggleChecklistItem = async (groupId: string, itemId: number) => {
+  await axiosInstance.patch(`${API_BASE_URL}/trip-groups/${groupId}/checklist/toggle/${itemId}`);
+};
+
+export const deleteChecklistItem = async (groupId: string, itemId: number) => {
+  await axiosInstance.delete(`${API_BASE_URL}/trip-groups/${groupId}/checklist/${itemId}`);
+};
+
+export const updateChecklistItem = async (
+  groupId: string,
+  itemId: number,
+  item: ChecklistItem
+) => {
+  const res = await axiosInstance.put(`${API_BASE_URL}/trip-groups/${groupId}/checklist/${itemId}`, item);
+  return res.data;
+};
+
+export const createChecklistItem = async (groupId: string, item: ChecklistItem) => {
+  const res = await axiosInstance.post(`${API_BASE_URL}/trip-groups/${groupId}/checklist`, item);
+  return res.data;
 };

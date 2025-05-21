@@ -46,9 +46,10 @@ const SearchResultsPage: React.FC = () => {
 
     const handleFilters = (flightsList: Flight[]) => {
         return flightsList.filter(flight => {
-            const matchesStops = selectedStops.length === 0 || selectedStops.includes(flight.stops);
+            // const matchesStops = selectedStops.length === 0 || selectedStops.includes(flight.stops);
             const matchesAirline = selectedAirlines.length === 0 || selectedAirlines.includes(flight.airline);
-            return matchesStops && matchesAirline;
+            // return matchesStops && matchesAirline;
+            return matchesAirline;
         });
     };
 
@@ -226,10 +227,10 @@ const SearchResultsPage: React.FC = () => {
                                                     <small className="text-muted">{flight.originAirportName}</small>
                                                 </div>
 
-                                                <div className="text-muted">
+                                                {/* <div className="text-muted">
                                                     <div>🕓</div>
                                                     <small>{flight.duration}</small>
-                                                </div>
+                                                </div> */}
 
                                                 <div>
                                                     <h5 className="mb-0">
@@ -246,7 +247,7 @@ const SearchResultsPage: React.FC = () => {
                                         {/* Price + CTA */}
                                         <div className="text-end w-100 w-md-25">
                                             <h5 className="text-primary mb-2">₹{flight.price}</h5>
-                                            <Button variant="primary" size="sm" className="rounded-pill" onClick={() => handleBook(flight.id)}>
+                                            <Button variant="primary" size="sm" className="rounded-pill" onClick={() => handleBook(flight.flightId)}>
                                                 Book Now
                                             </Button>
                                         </div>

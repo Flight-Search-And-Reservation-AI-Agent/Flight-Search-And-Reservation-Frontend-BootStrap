@@ -8,6 +8,8 @@ const Header = () => {
     const [lastScrollY, setLastScrollY] = useState(0);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [username, setUsername] = useState("");
+    const [role, setRole] = useState("");
+
 
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
@@ -22,6 +24,18 @@ const Header = () => {
         setUsername("");
         navigate("/login");
     };
+    
+    const isTokenExpired = (token: string): boolean => {
+        try {
+            const [, payload] = token.split('.');
+            const decodedPayload = JSON.parse(atob(payload));
+            const currentTime = Math.floor(Date.now() / 1000);
+            return decodedPayload.exp < currentTime;
+        } catch (error) {
+            return true; // Treat malformed tokens as expired
+        }
+    };
+
 
     // Scroll visibility logic
     useEffect(() => {
@@ -38,11 +52,20 @@ const Header = () => {
     useEffect(() => {
         const token = localStorage.getItem("token");
         const user = localStorage.getItem("user");
+        const userRole = localStorage.getItem("role");
+
         if (token && user) {
-            setIsLoggedIn(true);
-            setUsername(user || "User");
+            if (isTokenExpired(token)) {
+                logout();
+            } else {
+                setIsLoggedIn(true);
+                setUsername(user || "User");
+                setRole(userRole || ""); // Set role
+            }
         }
     }, []);
+
+
 
     // Click outside to close dropdown
     useEffect(() => {
@@ -84,15 +107,21 @@ const Header = () => {
 
                 <div className={`collapse navbar-collapse ${isNavOpen ? "show" : ""}`}>
                     <ul className="navbar-nav ms-auto align-items-center gap-lg-4 fw-medium">
-                        <li className="nav-item">
-                            <Link to="/admin" className="nav-link text-dark">Admin</Link>
-                        </li>
+                        {role === "ADMIN" && (
+                            <li className="nav-item">
+                                <Link to="/admin" className="nav-link text-dark">Admin</Link>
+                            </li>
+                        )}
+                        {role === "USER" && (
                         <li className="nav-item">
                             <Link to="/reservationPage" className="nav-link text-dark">Reservations</Link>
-                        </li>
+                            </li>)}
+                        {role === "USER" && (
                         <li className="nav-item">
                             <Link to="/group" className="nav-link text-dark">Group-Trip</Link>
                         </li>
+                        )}
+                        
 
                         {!isLoggedIn ? (
                             <li className="nav-item ms-3">

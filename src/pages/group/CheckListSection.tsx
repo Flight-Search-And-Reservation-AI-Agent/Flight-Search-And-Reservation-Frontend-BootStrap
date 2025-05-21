@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useParams } from 'react-router-dom';
-
-type ChecklistItem = {
-    itemId?: number;
-    task: string;
-    assignedTo: string;
-    done: boolean;
-};
+import type { ChecklistItem } from '../../types';
+import {
+    fetchChecklistItems,
+    toggleChecklistItem,
+    deleteChecklistItem,
+    updateChecklistItem,
+    createChecklistItem,
+} from '../../api/api';
 
 const ChecklistPage: React.FC = () => {
     const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
@@ -17,36 +17,41 @@ const ChecklistPage: React.FC = () => {
         done: false,
     });
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
-
     const { groupId } = useParams();
 
     useEffect(() => {
         fetchChecklist();
     }, [groupId]);
 
-    const fetchChecklist = () => {
-        axios
-            .get(`http://localhost:8080/api/v1/trip-groups/${groupId}/checklist`)
-            .then((res) => setChecklistItems(res.data))
-            .catch((err) => console.error('Error fetching checklist:', err));
+    const fetchChecklist = async () => {
+        try {
+            const items = await fetchChecklistItems(groupId!);
+
+            // Normalize 'completed' to 'done'
+            const normalizedItems = items.map((item: any)=> ({
+                ...item,
+                done: item.done || item.completed || false, // ✅ fallback for both cases
+            }));
+
+            setChecklistItems(normalizedItems);
+        } catch (err) {
+            console.error('Error fetching checklist:', err);
+        }
     };
+
 
     const handleCheckboxToggle = async (index: number) => {
         const item = checklistItems[index];
         if (!item.itemId) return;
 
-        // Optimistically update local state
         const updatedItems = [...checklistItems];
         updatedItems[index] = { ...item, done: !item.done };
         setChecklistItems(updatedItems);
 
         try {
-            await axios.patch(
-                `http://localhost:8080/api/v1/trip-groups/${groupId}/checklist/toggle/${item.itemId}`
-            );
+            await toggleChecklistItem(groupId!, item.itemId);
         } catch (err) {
             console.error('Toggle error:', err);
-            // Revert change on failure
             updatedItems[index] = item;
             setChecklistItems(updatedItems);
         }
@@ -57,9 +62,7 @@ const ChecklistPage: React.FC = () => {
         if (!item.itemId) return;
 
         try {
-            await axios.delete(
-                `http://localhost:8080/api/v1/trip-groups/${groupId}/checklist/${item.itemId}`
-            );
+            await deleteChecklistItem(groupId!, item.itemId);
             setChecklistItems(checklistItems.filter((_, i) => i !== index));
         } catch (err) {
             console.error('Delete error:', err);
@@ -77,22 +80,15 @@ const ChecklistPage: React.FC = () => {
                 const itemId = checklistItems[editingIndex].itemId;
                 if (!itemId) return;
 
-                const res = await axios.put(
-                    `http://localhost:8080/api/v1/trip-groups/${groupId}/checklist/${itemId}`,
-                    newItem
-                );
-
+                const updated = await updateChecklistItem(groupId!, itemId, newItem);
                 const updatedItems = checklistItems.map((item, index) =>
-                    index === editingIndex ? res.data : item
+                    index === editingIndex ? updated : item
                 );
                 setChecklistItems(updatedItems);
                 setEditingIndex(null);
             } else {
-                const res = await axios.post(
-                    `http://localhost:8080/api/v1/trip-groups/${groupId}/checklist`,
-                    newItem
-                );
-                setChecklistItems([...checklistItems, res.data]);
+                const created = await createChecklistItem(groupId!, newItem);
+                setChecklistItems([...checklistItems, created]);
             }
 
             setNewItem({ task: '', assignedTo: '', done: false });
@@ -107,14 +103,12 @@ const ChecklistPage: React.FC = () => {
 
     return (
         <div className="container py-5">
-            <h2 className="mb-4 h4">Trip Checklist</h2>
-
             <div className="card shadow-sm border">
                 <div className="card-body">
                     <div className="mb-3">
                         {checklistItems.map((item, index) => (
                             <div
-                                key={item.itemId || index}
+                                key={item.itemId ?? index}
                                 className="d-flex justify-content-between align-items-center bg-light p-3 rounded mb-2"
                             >
                                 <div className="d-flex align-items-start gap-3">

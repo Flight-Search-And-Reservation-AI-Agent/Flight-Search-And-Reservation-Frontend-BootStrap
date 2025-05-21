@@ -1,32 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Group } from '../../types';
-import axios from 'axios';
+import { getUserTripGroups, deleteTripGroup } from '../../api/api';
 
 const GroupDashboard: React.FC = () => {
     const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    const userId = localStorage.getItem('userId'); // Assuming you store user ID here
+    const userId = localStorage.getItem('userId');
 
     useEffect(() => {
-    const fetchGroups = async () => {
-        if (!userId) return;
-        try {
-            const response = await axios.get(`http://localhost:8080/api/v1/trip-groups/my?userId=${userId}`);
-            setGroups(response.data);
-        } catch (error) {
-            console.error('Error fetching groups:', error);
-            alert('Error fetching groups');  // Optional: Show an alert for error debugging
-        } finally {
-            setLoading(false);
-        }
-    };
+        const fetchGroups = async () => {
+            if (!userId) return;
+            try {
+                const data = await getUserTripGroups(userId);
+                setGroups(data);
+            } catch (error) {
+                alert('Error fetching groups');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    fetchGroups();
-}, [userId]);
-
+        fetchGroups();
+    }, [userId]);
 
     const handleGroupClick = (groupId: string | number) => {
         const group = groups.find((g) => g.tripGroupId === groupId);
@@ -35,7 +33,22 @@ const GroupDashboard: React.FC = () => {
         }
     };
 
-    
+    const handleDeleteGroup = async (groupId: string) => {
+        if (!userId) {
+            alert("User not logged in");
+            return;
+        }
+
+        if (!window.confirm('Are you sure you want to delete this group?')) return;
+
+        try {
+            await deleteTripGroup(groupId, userId);
+            setGroups(groups.filter((group) => group.tripGroupId !== groupId));
+        } catch (error) {
+            alert('Failed to delete group.');
+            console.error(error);
+        }
+    };
 
 
     return (
@@ -63,29 +76,35 @@ const GroupDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                        {groups.map((group) => (
-                            <div className="col-md-4 col-sm-6" key={group.tripGroupId}>
-                                <div className="card h-100" role="button" onClick={() => handleGroupClick(group.tripGroupId)}>
-                                    <img
-                                        src={group.tripAvatarUrl || '/default.jpg'}
-                                        className="card-img-top"
-                                        alt={group.tripName}
-                                        style={{ height: '160px', objectFit: 'cover' }}
-                                    />
-                                    <div className="card-body">
-                                        <h5 className="card-title mb-2">{group.tripName}</h5>
-                                        <p className="card-text text-muted mb-1">{group.tripDescription || 'No description provided'}</p>
-                                        <div className="d-flex justify-content-between align-items-center mt-3">
-                                            <span className={`badge ${group.status === 'Planning' ? 'bg-warning text-dark' : 'bg-success'}`}>
-                                                {group.status || 'Active'}
-                                            </span>
-                                            <small className="text-muted">{group.members?.length || 0} members</small>
-                                        </div>
+                    {groups.map((group) => (
+                        <div className="col-md-4 col-sm-6" key={group.tripGroupId}>
+                            <div className="card h-100 position-relative">
+                                <img
+                                    src={group.tripAvatarUrl || 'src/assets/pic1.jpg'}
+                                    className="card-img-top"
+                                    alt={group.tripName}
+                                    style={{ height: '160px', objectFit: 'cover', cursor: 'pointer' }}
+                                    onClick={() => handleGroupClick(group.tripGroupId)}
+                                />
+                                <div className="card-body">
+                                    <h5 className="card-title mb-2">{group.tripName}</h5>
+                                    <p className="card-text text-muted mb-1">{group.tripDescription || 'No description provided'}</p>
+                                    <div className="d-flex justify-content-between align-items-center mt-3">
+                                        <span className={`badge ${group.status === 'Planning' ? 'bg-warning text-dark' : 'bg-success'}`}>
+                                            {group.status || 'Active'}
+                                        </span>
+                                        <small className="text-muted">{group.members?.length || 0} members</small>
                                     </div>
                                 </div>
+                                <button
+                                    className="btn btn-sm btn-danger position-absolute top-0 end-0 m-2"
+                                    onClick={() => handleDeleteGroup(group.tripGroupId.toString())}
+                                >
+                                    &times;
+                                </button>
                             </div>
-                        ))}
-
+                        </div>
+                    ))}
                 </div>
             )}
         </div>

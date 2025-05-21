@@ -1,81 +1,126 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Client, type IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { Client, over } from 'stompjs';
-import { Button, Form, InputGroup } from 'react-bootstrap';
-
-let stompClient: Client;
-
-type ChatMessage = {
-    sender: string;
-    content: string;
-    timestamp: string;
-};
+import type { ChatMessage } from '../../types';
 
 interface Props {
     groupId: string;
-    currentUser: string;
+    userId: string;
+    username: string;
 }
 
-const GroupChatBox: React.FC<Props> = ({ groupId, currentUser }) => {
+const GroupChat: React.FC<Props> = ({ groupId, userId, username }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [message, setMessage] = useState('');
+    const [newMessage, setNewMessage] = useState('');
+    const stompClient = useRef<Client | null>(null);
+    const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-    const connect = () => {
-        const socket = new SockJS('http://localhost:8080/ws'); // Backend websocket endpoint
-        stompClient = over(socket);
-        stompClient.connect({}, () => {
-            stompClient.subscribe(`/topic/group/${groupId}/chat`, (payload: any) => {
-                const msg: ChatMessage = JSON.parse(payload.body);
-                setMessages((prev) => [...prev, msg]);
-            });
+    // Fetch old messages on mount
+    useEffect(() => {
+        fetch(`http://localhost:8080/api/v1/chat/messages/${groupId}`)
+            .then(res => res.json())
+            .then(data => setMessages(data))
+            .catch(err => console.error('Failed to fetch chat history:', err));
+    }, [groupId]);
 
+    // Connect WebSocket
+    useEffect(() => {
+        const socket = new SockJS('http://localhost:8080/ws'); // Adjust if different
+        const client = new Client({
+            webSocketFactory: () => socket,
+            onConnect: () => {
+                console.log('Connected to WebSocket');
+                client.subscribe(`/topic/group/${groupId}`, (msg: IMessage) => {
+                    const message: ChatMessage = JSON.parse(msg.body);
+                    setMessages(prev => [...prev, message]);
+                });
+            },
+            onStompError: (frame) => {
+                console.error('STOMP Error:', frame.headers['message']);
+            },
+            debug: (str) => console.log(str),
         });
-    };
 
-    const sendMessage = () => {
-        if (stompClient && message.trim()) {
-            const chatMessage = {
+        client.activate();
+        stompClient.current = client;
+
+        return () => {
+            client.deactivate();
+            console.log('WebSocket connection closed');
+        };
+    }, [groupId]);
+
+    // Scroll to latest message
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    const handleSend = () => {
+        if (stompClient.current?.connected && newMessage.trim()) {
+            const message: ChatMessage = {
                 groupId,
-                sender: currentUser,
-                content: message,
+                senderId: userId,
+                senderUsername: username,
+                content: newMessage.trim(),
                 timestamp: new Date().toISOString(),
             };
-            stompClient.send(`/app/chat.sendMessage/${groupId}`, {}, JSON.stringify(chatMessage));
-            setMessage('');
+
+            stompClient.current.publish({
+                destination: '/app/sendMessage',
+                body: JSON.stringify(message),
+            });
+
+            setNewMessage('');
         }
     };
 
-    useEffect(() => {
-        connect();
-        return () => {
-            if (stompClient?.connected) stompClient.disconnect(() => {
-                console.log("Disconnected from WebSocket");
-            });
-
-        };
-    }, []);
-
     return (
-        <div className="p-3 border rounded bg-light" style={{ maxHeight: 300, overflowY: 'scroll' }}>
-            <div className="mb-3">
-                {messages.map((msg, index) => (
-                    <div key={index} className="mb-2">
-                        <strong>{msg.sender}:</strong> {msg.content}
-                        <div style={{ fontSize: '0.75em', color: 'gray' }}>{new Date(msg.timestamp).toLocaleTimeString()}</div>
-                    </div>
-                ))}
+        <div className="chat-container border p-3 rounded bg-light">
+            <div className="chat-box overflow-auto mb-3" style={{ height: '300px' }}>
+                {messages.map((msg, idx) => {
+                    const isCurrentUser = msg.senderId === userId;
+                    return (
+                        <div
+                            key={idx}
+                            className={`d-flex mb-2 ${isCurrentUser ? 'justify-content-end' : 'justify-content-start'}`}
+                        >
+                            <div
+                                style={{
+                                    maxWidth: '70%',
+                                    padding: '10px 15px',
+                                    borderRadius: '20px',
+                                    backgroundColor: isCurrentUser ? '#0d6efd' : '#e9ecef',
+                                    color: isCurrentUser ? 'white' : 'black',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                    wordBreak: 'break-word',
+                                }}
+                            >
+                                <div style={{ fontWeight: '600', marginBottom: '4px', fontSize: '0.9rem' }}>
+                                    {msg.senderUsername}
+                                </div>
+                                <div>{msg.content}</div>
+                                <div style={{ fontSize: '0.7rem', color: isCurrentUser ? '#cce5ff' : '#6c757d', marginTop: '6px', textAlign: 'right' }}>
+                                    {new Date(msg.timestamp || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+                <div ref={chatEndRef} />
             </div>
-            <InputGroup>
-                <Form.Control
+
+            <div className="input-group">
+                <input
+                    className="form-control"
                     placeholder="Type a message..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 />
-                <Button variant="primary" onClick={sendMessage}>Send</Button>
-            </InputGroup>
+                <button className="btn btn-primary" onClick={handleSend}>Send</button>
+            </div>
         </div>
     );
 };
 
-export default GroupChatBox;
+export default GroupChat;

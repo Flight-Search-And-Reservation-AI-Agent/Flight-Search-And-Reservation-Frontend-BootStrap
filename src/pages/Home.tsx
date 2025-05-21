@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+// import  { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/ui/Footer';
 import { useEffect } from 'react';
@@ -6,9 +6,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import FlightSearchForm from '../components/ui/FlightSearchForm';
 
 export default function MyComponent() {
-    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    // const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-    const toggleUserMenu = () => setIsUserMenuOpen(!isUserMenuOpen);
+    // const toggleUserMenu = () => setIsUserMenuOpen(!isUserMenuOpen);
 
     const destinations = [
         { city: "Paris", image: "src/assets/pic2.jpg" },
