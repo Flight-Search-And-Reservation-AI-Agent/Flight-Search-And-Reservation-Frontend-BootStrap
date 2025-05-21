@@ -43,13 +43,13 @@ const toISOLocalDateTime = (datetime: string): string => {
 
 
 // Helper for handling fetch errors
-async function handleResponse(response: Response) {
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Something went wrong");
-    }
-    return response.json();
-}
+// async function handleResponse(response: Response) {
+//     if (!response.ok) {
+//         const errorText = await response.text();
+//         throw new Error(errorText || "Something went wrong");
+//     }
+//     return response.json();
+// }
 
 
 // GET /api/v1/users - Get all users (admin only)
