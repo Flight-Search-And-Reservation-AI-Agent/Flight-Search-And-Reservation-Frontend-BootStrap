@@ -17,7 +17,7 @@ const GroupChat: React.FC<Props> = ({ groupId, userId, username }) => {
 
     // Fetch old messages on mount
     useEffect(() => {
-        fetch(`https://flightapp-backend-new.uc.r.appspot.com/${groupId}`)
+        fetch(`https://flightapp-backend-new.uc.r.appspot.com/api/v1/chat/messages/${groupId}`)
             .then(res => res.json())
             .then(data => setMessages(data))
             .catch(err => console.error('Failed to fetch chat history:', err));
