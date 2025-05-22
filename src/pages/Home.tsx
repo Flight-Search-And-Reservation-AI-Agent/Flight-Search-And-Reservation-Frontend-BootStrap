@@ -11,9 +11,9 @@ export default function MyComponent() {
     // const toggleUserMenu = () => setIsUserMenuOpen(!isUserMenuOpen);
 
     const destinations = [
-        { city: "Paris", image: "src/assets/pic2.jpg" },
-        { city: "Tokyo", image: "src/assets/pic1.jpg" },
-        { city: "New York", image: "src/assets/pic2.jpg" },
+        { city: "Paris", image: "public/pic2.jpg" },
+        { city: "Tokyo", image: "public/pic1.jpg" },
+        { city: "New York", image: "public/pic2.jpg" },
     ];
 
     const features = [

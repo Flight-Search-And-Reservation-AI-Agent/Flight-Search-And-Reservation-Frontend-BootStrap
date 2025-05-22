@@ -136,7 +136,7 @@ const Header = () => {
                                     onClick={toggleDropdown}
                                 >
                                     <img
-                                        src={'src/assets/userimage.jpg'}
+                                            src={'public/userimage.jpg'}
                                         alt="Avatar"
                                         className="rounded-circle me-2"
                                         width="32"

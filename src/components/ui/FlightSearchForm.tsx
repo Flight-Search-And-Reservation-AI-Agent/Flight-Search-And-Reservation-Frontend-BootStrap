@@ -38,7 +38,7 @@ export default function FlightSearchForm() {
         <section
             className="position-relative d-flex align-items-center justify-content-center text-white"
             style={{
-                backgroundImage: "url('src/assets/pic3.jpg')",
+                backgroundImage: "url('public/pic3.jpg')",
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 height: "100vh",
