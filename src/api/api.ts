@@ -339,7 +339,7 @@ export const getUserTripGroups = async (userId: string) => {
 
 
 export const addUserToGroup = async (groupId: string, userId: string) => {
-  const response = await axios.post(`${API_BASE_URL}/trip-groups/${groupId}/members`, null, {
+  const response = await axiosInstance.post(`${API_BASE_URL}/trip-groups/${groupId}/members`, null, {
     params: { userId },
   });
   return response.data;
