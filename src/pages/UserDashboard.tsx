@@ -14,7 +14,7 @@ const UserDashboard = () => {
         const fetchUser = async () => {
             try {
                 if (!token) throw new Error('Token not found');
-                const res = await fetch(`http://localhost:8080/api/v1/users/me`, {
+                const res = await fetch(`https://flightapp-backend-new.uc.r.appspot.com/api/v1/users/me`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
