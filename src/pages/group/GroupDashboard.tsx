@@ -80,7 +80,8 @@ const GroupDashboard: React.FC = () => {
                         <div className="col-md-4 col-sm-6" key={group.tripGroupId}>
                             <div className="card h-100 position-relative">
                                 <img
-                                    src={group.tripAvatarUrl || '/pic1.jpg'}
+                                    // src={group.tripAvatarUrl || '/pic1.jpg'}
+                                    src={'/pic1.jpg'}
                                     className="card-img-top"
                                     alt={group.tripName}
                                     style={{ height: '160px', objectFit: 'cover', cursor: 'pointer' }}
