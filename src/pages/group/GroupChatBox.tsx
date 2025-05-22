@@ -17,7 +17,7 @@ const GroupChat: React.FC<Props> = ({ groupId, userId, username }) => {
 
     // Fetch old messages on mount
     useEffect(() => {
-        fetch(`http://localhost:8080/api/v1/chat/messages/${groupId}`)
+        fetch(`https://flightapp-backend-new.uc.r.appspot.com/${groupId}`)
             .then(res => res.json())
             .then(data => setMessages(data))
             .catch(err => console.error('Failed to fetch chat history:', err));
@@ -25,7 +25,7 @@ const GroupChat: React.FC<Props> = ({ groupId, userId, username }) => {
 
     // Connect WebSocket
     useEffect(() => {
-        const socket = new SockJS('http://localhost:8080/ws'); // Adjust if different
+        const socket = new SockJS('https://flightapp-backend-new.uc.r.appspot.com/ws'); // Adjust if different
         const client = new Client({
             webSocketFactory: () => socket,
             onConnect: () => {
