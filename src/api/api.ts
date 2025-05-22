@@ -399,3 +399,10 @@ export const createChecklistItem = async (groupId: string, item: ChecklistItem) 
   const res = await axiosInstance.post(`${API_BASE_URL}/trip-groups/${groupId}/checklist`, item);
   return res.data;
 };
+
+
+//chats
+export const fetchChatMessages = async (groupId: string) => {
+  const response = await axiosInstance.get(`${API_BASE_URL}/chat/messages/${groupId}`);
+  return response.data;
+};

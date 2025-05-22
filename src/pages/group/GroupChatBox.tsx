@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Client, type IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import type { ChatMessage } from '../../types';
+import { fetchChatMessages } from '../../api/api';
 
 interface Props {
     groupId: string;
@@ -17,10 +18,9 @@ const GroupChat: React.FC<Props> = ({ groupId, userId, username }) => {
 
     // Fetch old messages on mount
     useEffect(() => {
-        fetch(`https://flightapp-backend-new.uc.r.appspot.com/api/v1/chat/messages/${groupId}`)
-            .then(res => res.json())
-            .then(data => setMessages(data))
-            .catch(err => console.error('Failed to fetch chat history:', err));
+        fetchChatMessages(groupId)
+            .then(setMessages)
+            .catch((err) => console.error('Failed to fetch chat history:', err));
     }, [groupId]);
 
     // Connect WebSocket
