@@ -6,9 +6,9 @@ import { searchFlights } from "../api/api";
 import type { Flight } from "../types";
 
 const airlineLogos: Record<string, string> = {
-    "IndiGo": "public/pic6.png",
-    "Vistara": "public/pic6.png",
-    "Air India": "public/pic5.png",
+    "IndiGo": "/pic6.png",
+    "Vistara": "/pic6.png",
+    "Air India": "/pic5.png",
 };
 
 const SearchResultsPage: React.FC = () => {
