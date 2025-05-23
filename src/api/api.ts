@@ -173,7 +173,6 @@ export const deleteAirport = async (id: string) => {
   const response = await axiosInstance.delete(`${API_BASE_URL}/airports/${id}`);
   return response.data;
 };
-
 // ✈️ Aircraft
 export const getAllAircraft = async (): Promise<Aircraft[]> => {
   const response = await axiosInstance.get<Aircraft[]>(`${API_BASE_URL}/aircrafts`);

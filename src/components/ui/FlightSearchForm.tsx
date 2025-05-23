@@ -1,31 +1,49 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { searchFlights } from "../../api/api";
+import { searchFlights, getAllAirports } from "../../api/api";
 import { FaPlaneDeparture, FaPlaneArrival, FaCalendarAlt } from "react-icons/fa";
+import { Typeahead } from "react-bootstrap-typeahead";
+import "react-bootstrap-typeahead/css/Typeahead.css";
+import type { Airport } from "../../types";
+
+
 
 export default function FlightSearchForm() {
-    const [origin, setOrigin] = useState("");
-    const [destination, setDestination] = useState("");
+    const [origin, setOrigin] = useState<string | null>(null);
+    const [destination, setDestination] = useState<string | null>(null);
     const [departureDate, setDepartureDate] = useState("");
+    const [airportOptions, setAirportOptions] = useState<Airport[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     const navigate = useNavigate();
 
+    useEffect(() => {
+        const fetchAirports = async () => {
+            try {
+                const data = await getAllAirports(); // API call
+                setAirportOptions(data);
+            } catch {
+                setError("Failed to load airport data.");
+            }
+        };
+        fetchAirports();
+    }, []);
+
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!origin || !destination) {
+            setError("Please select both origin and destination.");
+            return;
+        }
+
         setLoading(true);
         setError("");
 
         try {
             const results = await searchFlights(origin, destination, departureDate);
             navigate("/search-results", {
-                state: {
-                    flights: results,
-                    origin,
-                    destination,
-                    departureDate,
-                },
+                state: { flights: results, origin, destination, departureDate },
             });
         } catch (err) {
             setError("Failed to fetch flights. Please try again.");
@@ -57,22 +75,60 @@ export default function FlightSearchForm() {
                         <div className="col-md-4 col-12">
                             <div className="input-group">
                                 <span className="input-group-text bg-primary text-white"><FaPlaneDeparture /></span>
-                                <input type="text" className="form-control form-control-lg" placeholder="Origin (e.g. DEL)" value={origin} onChange={(e) => setOrigin(e.target.value)} required />
+                                <Typeahead
+                                    id="origin-typeahead"
+                                    labelKey="city"
+                                    options={airportOptions}
+                                    onChange={(selected) => setOrigin((selected[0] as Airport)?.code ?? null)}
+                                    placeholder="Origin City"
+                                    renderMenuItemChildren={(option, _props, index) => {
+                                        const airport = option as Airport;
+                                        return (
+                                            <div key={index}>
+                                                {airport.city}, {airport.country} <small className="text-muted">({airport.code})</small>
+                                            </div>
+                                        );
+                                    }}
+                                />
+
                             </div>
                         </div>
                         <div className="col-md-4 col-12">
                             <div className="input-group">
                                 <span className="input-group-text bg-primary text-white"><FaPlaneArrival /></span>
-                                <input type="text" className="form-control form-control-lg" placeholder="Destination (e.g. BOM)" value={destination} onChange={(e) => setDestination(e.target.value)} required />
+                                <Typeahead
+                                    id="destination-typeahead"
+                                    labelKey="city"
+                                    options={airportOptions}
+                                    onChange={(selected) => setDestination((selected[0] as Airport)?.code ?? null)}
+                                    placeholder="Destination City"
+                                    renderMenuItemChildren={(option, _props, index) => {
+                                        const airport = option as Airport;
+                                        return (
+                                            <div key={index}>
+                                                {airport.city}, {airport.country} <small className="text-muted">({airport.code})</small>
+                                            </div>
+                                        );
+                                    }}
+                                />
+
+
                             </div>
                         </div>
                         <div className="col-md-4 col-12">
                             <div className="input-group">
                                 <span className="input-group-text bg-primary text-white"><FaCalendarAlt /></span>
-                                <input type="date" className="form-control form-control-lg" value={departureDate} onChange={(e) => setDepartureDate(e.target.value)} required />
+                                <input
+                                    type="date"
+                                    className="form-control form-control-lg"
+                                    value={departureDate}
+                                    onChange={(e) => setDepartureDate(e.target.value)}
+                                    required
+                                />
                             </div>
                         </div>
                     </div>
+
                     <button type="submit" className="btn btn-warning w-100 mt-3 fw-semibold rounded-pill py-3" disabled={loading}>
                         {loading ? "Searching..." : "Search Flights"}
                     </button>

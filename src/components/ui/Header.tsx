@@ -92,7 +92,7 @@ const Header = () => {
     return (
         <header className={`bg-white shadow-sm sticky-top border-bottom transition-all ${isVisible ? "top-0" : "-top-100"} z-1030`}>
             <nav className="navbar navbar-expand-lg px-4 px-lg-5">
-                <Link to="/" className="navbar-brand d-flex align-items-center gap-2 fs-3 fw-bold text-primary">
+                <Link to="/home" className="navbar-brand d-flex align-items-center gap-2 fs-3 fw-bold text-primary">
                     ✈️ <span className="text-dark">SkySync</span>
                 </Link>
 
@@ -125,7 +125,7 @@ const Header = () => {
 
                         {!isLoggedIn ? (
                             <li className="nav-item ms-3">
-                                <Link to="/login">
+                                <Link to="/">
                                     <button className="btn btn-primary px-4">Sign In</button>
                                 </Link>
                             </li>

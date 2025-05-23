@@ -29,9 +29,9 @@ function App() {
         {/* actual content */}
         <Header />
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Login />} />
           <Route path="/search-results" element={<SearchResultsPage />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/home" element={<Home />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<UserDashboard />} />
           <Route path="/group" element={<GroupDashboard/>}/>
