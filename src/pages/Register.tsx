@@ -22,7 +22,7 @@ const Register = () => {
         setError(null);
         try {
             await registerUser(form); // no role being sent here
-            navigate("/login");
+            navigate("/");
         } catch (err: any) {
             const errMsg =
                 err.response?.data?.message ||

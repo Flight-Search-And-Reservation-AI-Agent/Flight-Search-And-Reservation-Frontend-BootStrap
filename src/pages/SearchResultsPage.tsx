@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Form, Button } from "react-bootstrap";
 import { FaPlaneDeparture, FaPlaneArrival, FaCalendarAlt } from "react-icons/fa";
-import { searchFlights } from "../api/api";
-import type { Flight } from "../types";
+import { Typeahead } from "react-bootstrap-typeahead";
+import "react-bootstrap-typeahead/css/Typeahead.css";
+
+import { searchFlights, getAllAirports } from "../api/api";
+import type { Flight, Airport } from "../types";
 
 const airlineLogos: Record<string, string> = {
     "IndiGo": "/pic6.png",
@@ -15,17 +18,65 @@ const SearchResultsPage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const { flights = [], origin: initialOrigin, destination: initialDestination, departureDate: initialDate } = location.state || {};
-    const [origin, setOrigin] = useState(initialOrigin || "");
-    const [destination, setDestination] = useState(initialDestination || "");
+    const {
+        flights = [],
+        origin: initialOrigin,
+        destination: initialDestination,
+        departureDate: initialDate,
+    } = location.state || {};
+
+    // Search form states
+    const [origin, setOrigin] = useState<string | null>(initialOrigin || null);
+    const [destination, setDestination] = useState<string | null>(
+        initialDestination || null
+    );
     const [departureDate, setDepartureDate] = useState(initialDate || "");
+    const [airportOptions, setAirportOptions] = useState<Airport[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    // Filters and sorting states
     const [sortType, setSortType] = useState<string>("priceAsc");
-    const [selectedStops, setSelectedStops] = useState<number[]>([]);
     const [selectedAirlines, setSelectedAirlines] = useState<string[]>([]);
     const [flightList, setFlightList] = useState<Flight[]>(flights);
+
+    // Fetch airports on mount for the typeahead fields
+    useEffect(() => {
+        const fetchAirports = async () => {
+            try {
+                const data = await getAllAirports();
+                setAirportOptions(data);
+            } catch {
+                setError("Failed to load airport data.");
+            }
+        };
+        fetchAirports();
+    }, []);
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!origin || !destination) {
+            setError("Please select both origin and destination.");
+            return;
+        }
+
+        setLoading(true);
+        setError("");
+
+        try {
+            const results = await searchFlights(origin, destination, departureDate);
+            setFlightList(results);
+            // Also update location state (optional)
+            navigate("/search-results", {
+                replace: true,
+                state: { flights: results, origin, destination, departureDate },
+            });
+        } catch (err) {
+            setError("Failed to fetch flights. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleBook = (flightId: string) => {
         navigate(`/book/${flightId}`);
@@ -38,35 +89,22 @@ const SearchResultsPage: React.FC = () => {
                 sorted.sort((a, b) => a.price - b.price);
                 break;
             case "earlyDeparture":
-                sorted.sort((a, b) => new Date(a.departureTime).getTime() - new Date(b.departureTime).getTime());
+                sorted.sort(
+                    (a, b) =>
+                        new Date(a.departureTime).getTime() -
+                        new Date(b.departureTime).getTime()
+                );
                 break;
         }
         return sorted;
     };
 
     const handleFilters = (flightsList: Flight[]) => {
-        return flightsList.filter(flight => {
-            // const matchesStops = selectedStops.length === 0 || selectedStops.includes(flight.stops);
-            const matchesAirline = selectedAirlines.length === 0 || selectedAirlines.includes(flight.airline);
-            // return matchesStops && matchesAirline;
+        return flightsList.filter((flight) => {
+            const matchesAirline =
+                selectedAirlines.length === 0 || selectedAirlines.includes(flight.airline);
             return matchesAirline;
         });
-    };
-
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
-
-        try {
-            const results = await searchFlights(origin, destination, departureDate);
-            setFlightList(results);
-            console.log(results)
-        } catch (err) {
-            setError("Failed to fetch flights. Please try again.");
-        } finally {
-            setLoading(false);
-        }
     };
 
     const filteredAndSortedFlights = handleSort(handleFilters(flightList));
@@ -79,33 +117,71 @@ const SearchResultsPage: React.FC = () => {
                     <div className="row g-3 align-items-end">
                         <div className="col-md-4 col-12">
                             <div className="input-group">
-                                <span className="input-group-text bg-primary text-white"><FaPlaneDeparture /></span>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Origin (e.g. DEL)"
-                                    value={origin}
-                                    onChange={(e) => setOrigin(e.target.value)}
-                                    required
+                                <span className="input-group-text bg-primary text-white">
+                                    <FaPlaneDeparture />
+                                </span>
+                                <Typeahead
+                                    id="origin-typeahead"
+                                    labelKey="city"
+                                    options={airportOptions}
+                                    onChange={(selected) =>
+                                        setOrigin((selected[0] as Airport)?.code ?? null)
+                                    }
+                                    placeholder="Origin City"
+                                    selected={
+                                        origin
+                                            ? airportOptions.filter((a) => a.code === origin)
+                                            : []
+                                    }
+                                    renderMenuItemChildren={(option, _props, index) => {
+                                        const airport = option as Airport;
+                                        return (
+                                            <div key={index}>
+                                                {airport.city}, {airport.country}{" "}
+                                                <small className="text-muted">({airport.code})</small>
+                                            </div>
+                                        );
+                                    }}
+                                    clearButton
                                 />
                             </div>
                         </div>
                         <div className="col-md-4 col-12">
                             <div className="input-group">
-                                <span className="input-group-text bg-primary text-white"><FaPlaneArrival /></span>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Destination (e.g. BOM)"
-                                    value={destination}
-                                    onChange={(e) => setDestination(e.target.value)}
-                                    required
+                                <span className="input-group-text bg-primary text-white">
+                                    <FaPlaneArrival />
+                                </span>
+                                <Typeahead
+                                    id="destination-typeahead"
+                                    labelKey="city"
+                                    options={airportOptions}
+                                    onChange={(selected) =>
+                                        setDestination((selected[0] as Airport)?.code ?? null)
+                                    }
+                                    placeholder="Destination City"
+                                    selected={
+                                        destination
+                                            ? airportOptions.filter((a) => a.code === destination)
+                                            : []
+                                    }
+                                    renderMenuItemChildren={(option, _props, index) => {
+                                        const airport = option as Airport;
+                                        return (
+                                            <div key={index}>
+                                                {airport.city}, {airport.country}{" "}
+                                                <small className="text-muted">({airport.code})</small>
+                                            </div>
+                                        );
+                                    }}
+                                    clearButton
                                 />
                             </div>
                         </div>
                         <div className="col-md-4 col-12">
                             <div className="input-group">
-                                <span className="input-group-text bg-primary text-white"><FaCalendarAlt /></span>
+                                <span className="input-group-text bg-primary text-white">
+                                    <FaCalendarAlt />
+                                </span>
                                 <input
                                     type="date"
                                     className="form-control"
@@ -135,37 +211,15 @@ const SearchResultsPage: React.FC = () => {
                 <div className="col-md-3 mb-4">
                     <h5>Filters</h5>
                     <Form.Group className="mb-3">
-                        <Form.Label>Stops</Form.Label>
-                        <Form.Check
-                            label="Non-stop"
-                            onChange={() =>
-                                setSelectedStops(prev =>
-                                    prev.includes(0) ? prev.filter(s => s !== 0) : [...prev, 0]
-                                )
-                            }
-                            checked={selectedStops.includes(0)}
-                        />
-                        <Form.Check
-                            label="1 Stop"
-                            onChange={() =>
-                                setSelectedStops(prev =>
-                                    prev.includes(1) ? prev.filter(s => s !== 1) : [...prev, 1]
-                                )
-                            }
-                            checked={selectedStops.includes(1)}
-                        />
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
                         <Form.Label>Airlines</Form.Label>
-                        {["IndiGo", "Vistara", "Air India"].map(airline => (
+                        {["IndiGo", "Vistara", "Air India"].map((airline) => (
                             <Form.Check
                                 key={airline}
                                 label={airline}
                                 onChange={() =>
-                                    setSelectedAirlines(prev =>
+                                    setSelectedAirlines((prev) =>
                                         prev.includes(airline)
-                                            ? prev.filter(a => a !== airline)
+                                            ? prev.filter((a) => a !== airline)
                                             : [...prev, airline]
                                     )
                                 }
@@ -176,7 +230,10 @@ const SearchResultsPage: React.FC = () => {
 
                     <Form.Group className="mb-3">
                         <Form.Label>Sort By</Form.Label>
-                        <Form.Select value={sortType} onChange={(e) => setSortType(e.target.value)}>
+                        <Form.Select
+                            value={sortType}
+                            onChange={(e) => setSortType(e.target.value)}
+                        >
                             <option value="priceAsc">Price: Low to High</option>
                             <option value="earlyDeparture">Early Departure</option>
                         </Form.Select>
@@ -186,15 +243,21 @@ const SearchResultsPage: React.FC = () => {
                 {/* RESULTS SECTION */}
                 <div className="col-md-9">
                     <h4 className="mb-3">
-                        ✈️ {origin} → {destination} |{" "}
-                        <small>{new Date(departureDate).toLocaleDateString()}</small>
+                        ✈️ {origin || "Origin"} → {destination || "Destination"} |{" "}
+                        <small>
+                            {departureDate
+                                ? new Date(departureDate).toLocaleDateString()
+                                : "Date"}
+                        </small>
                     </h4>
 
                     {filteredAndSortedFlights.length === 0 ? (
-                        <div className="alert alert-warning">No flights match selected filters.</div>
+                        <div className="alert alert-warning">
+                            No flights match selected filters.
+                        </div>
                     ) : (
                         <div className="d-flex flex-column gap-3">
-                            {filteredAndSortedFlights.map(flight => (
+                            {filteredAndSortedFlights.map((flight) => (
                                 <div
                                     key={flight.flightId}
                                     className="card shadow-sm border-0 p-3 rounded-4"
@@ -204,51 +267,51 @@ const SearchResultsPage: React.FC = () => {
                                         {/* Airline + Flight Info */}
                                         <div className="d-flex align-items-center gap-3 w-100 w-md-25">
                                             <img
-                                                src={airlineLogos[flight.airline] || "https://via.placeholder.com/40"}
+                                                src={
+                                                    airlineLogos[flight.airline] ||
+                                                    "https://via.placeholder.com/40"
+                                                }
                                                 alt={flight.airline}
-                                                style={{ width: "40px", height: "40px", objectFit: "contain" }}
+                                                style={{ width: 40, height: 40 }}
                                             />
                                             <div>
-                                                <h6 className="mb-0">{flight.airline}</h6>
-                                                <small className="text-muted">#{flight.flightNumber}</small>
+                                                <h6 className="mb-1">{flight.airline}</h6>
+                                                <p className="mb-0 text-muted">{flight.flightNumber}</p>
                                             </div>
                                         </div>
 
-                                        {/* Timings */}
-                                        <div className="text-center w-100 w-md-50">
-                                            <div className="d-flex justify-content-between align-items-center px-md-4">
-                                                <div>
-                                                    <h5 className="mb-0">
-                                                        {new Date(flight.departureTime).toLocaleTimeString([], {
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                        })}
-                                                    </h5>
-                                                    <small className="text-muted">{flight.originAirportName}</small>
-                                                </div>
-
-                                                {/* <div className="text-muted">
-                                                    <div>🕓</div>
-                                                    <small>{flight.duration}</small>
-                                                </div> */}
-
-                                                <div>
-                                                    <h5 className="mb-0">
-                                                        {new Date(flight.arrivalTime).toLocaleTimeString([], {
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                        })}
-                                                    </h5>
-                                                    <small className="text-muted">{flight.destinationAirportName}</small>
-                                                </div>
+                                        {/* Departure */}
+                                        <div className="text-center w-100 w-md-25">
+                                            <div>
+                                                <FaPlaneDeparture />
+                                                <span className="fw-bold ms-1">{flight.originAirportName}</span>
                                             </div>
+                                            <small className="text-muted">
+                                                {new Date(flight.departureTime).toLocaleString()}
+                                            </small>
                                         </div>
 
-                                        {/* Price + CTA */}
-                                        <div className="text-end w-100 w-md-25">
-                                            <h5 className="text-primary mb-2">₹{flight.price}</h5>
-                                            <Button variant="primary" size="sm" className="rounded-pill" onClick={() => handleBook(flight.flightId)}>
-                                                Book Now
+                                        {/* Arrival */}
+                                        <div className="text-center w-100 w-md-25">
+                                            <div>
+                                                <FaPlaneArrival />
+                                                <span className="fw-bold ms-1">{flight.destinationAirportName}</span>
+                                            </div>
+                                            <small className="text-muted">
+                                                {new Date(flight.arrivalTime).toLocaleString()}
+                                            </small>
+                                        </div>
+
+                                        {/* Price + Book button */}
+                                        <div className="d-flex flex-column align-items-center gap-2 w-100 w-md-25">
+                                            <div className="fs-5 fw-bold text-primary">
+                                                ₹{flight.price}
+                                            </div>
+                                            <Button
+                                                onClick={() => handleBook(flight.flightId)}
+                                                className="rounded-pill px-4"
+                                            >
+                                                Book
                                             </Button>
                                         </div>
                                     </div>

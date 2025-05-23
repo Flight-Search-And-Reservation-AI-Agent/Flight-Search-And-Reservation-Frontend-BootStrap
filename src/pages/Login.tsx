@@ -25,7 +25,18 @@ const Login = () => {
             localStorage.setItem("token", res.token); // optional, depending on your backend
             localStorage.setItem("user", form.username)
             localStorage.setItem("role", res.role);
-            navigate('/', { state: { fromLogin: true } });
+            const response = await fetch(`https://flightapp-backend-new.uc.r.appspot.com/api/v1/users/me`, {
+                headers: {
+                    'Authorization': `Bearer ${res.token}`,
+                    'Content-Type': 'application/json'
+                },
+            });
+
+            if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+            const userData = await response.json();
+            localStorage.setItem("userId", userData.userId);
+
+            navigate('/home', { state: { fromLogin: true } });
         } catch (err: any) {
             const errMsg =
                 err.response?.data?.message ||
