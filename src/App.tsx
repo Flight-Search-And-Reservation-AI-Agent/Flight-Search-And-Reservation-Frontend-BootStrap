@@ -21,6 +21,8 @@ import EditProfile from './components/ui/EditProfile'
 import GroupTripDashboard from './pages/group/GroupTripDaashBoard'
 import Users from './pages/admin/Users'
 import SearchResultsPage from './pages/SearchResultsPage'
+import FlightCheckout from './pages/FlightCheckout'
+import BookingConfirmed from './pages/BookingConfirmed'
 
 function App() {
 
@@ -29,9 +31,9 @@ function App() {
         {/* actual content */}
         <Header />
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Home />} />
           <Route path="/search-results" element={<SearchResultsPage />} />
-          <Route path="/home" element={<Home />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<UserDashboard />} />
           <Route path="/group" element={<GroupDashboard/>}/>
@@ -39,6 +41,9 @@ function App() {
           <Route path="/user/profile/edit" element={<EditProfile />} />
           <Route path="/group/:groupId" element={<GroupTripDashboard />}/>
           <Route path="/group/create" element={<CreateGroup />} />
+          <Route path="/checkout/:flightId" element={<FlightCheckout />} />
+          <Route path="/booking/confirmed" element={<BookingConfirmed />} />
+
         
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminLayout />}>

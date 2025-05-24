@@ -27,6 +27,15 @@ export interface FlightRequest {
   departureTime: string;
   arrivalTime: string;
   originAirportId: string;
+  origin:{
+    name: string;
+  };
+  destination:{
+    name:string;
+  };
+  aircraft:{
+    airline: string;
+  };
   destinationAirportId: string;
   aircraftId: string;
   price: number;
@@ -63,17 +72,40 @@ export type Reservation = {
     flightId: string;
     flightNumber: string;
     departureTime: string;
+    arrivalTime: string;
+    origin: {
+      code: string;
+      city: string;
+      name: string;
+    };
+    destination: {
+      code: string;
+      city: string;
+      name: string;
+    };
+    aircraft: {
+      aircraftId: string;
+      model: string;
+      airline: string;
+    };
+    price: number;
   };
   seatNumber: string;
-  status: "BOOKED" | "CANCELLED";
+  status: "CONFIRMED" | "CANCELLED";
   reservationTime: string;
+  passengers: {
+    name: string;
+    age: number;
+    gender: string;
+  }[];
 };
+
 
 export type ReservationRequest = {
   userId: string;
   flightId: string;
-  seatNumber?: string;
-  status: "BOOKED" | "CANCELLED";
+  passengers: { name: string; age: number; gender: string }[];
+  status: "CONFIRMED" | "CANCELLED";
 };
 
 

@@ -49,7 +49,7 @@ const UserDashboard = () => {
                             <div className="text-center mb-4">
                                 <div className="mb-3">
                                     <img
-                                        src="src/assets/userimage.jpg"
+                                        src="/userimage.jpg"
                                         alt="Profile"
                                         className="rounded-circle border border-4 border-primary"
                                         style={{ width: "120px", height: "120px", objectFit: "cover" }}

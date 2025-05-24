@@ -24,7 +24,7 @@ const GroupDashboard: React.FC = () => {
                 const data = await getUserTripGroups(userId);
                 setGroups(data);
             } catch (error) {
-                alert('Error fetching groups');
+                console.error(error);
             } finally {
                 setLoading(false);
             }

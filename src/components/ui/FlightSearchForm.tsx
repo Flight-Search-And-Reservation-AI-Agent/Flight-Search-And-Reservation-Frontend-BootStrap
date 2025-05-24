@@ -124,7 +124,9 @@ export default function FlightSearchForm() {
                                     value={departureDate}
                                     onChange={(e) => setDepartureDate(e.target.value)}
                                     required
+                                    min={new Date().toISOString().split("T")[0]} // restrict to today and future
                                 />
+
                             </div>
                         </div>
                     </div>

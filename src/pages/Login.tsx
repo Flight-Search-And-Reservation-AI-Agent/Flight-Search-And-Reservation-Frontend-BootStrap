@@ -1,9 +1,12 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginUser } from "../api/api"; // adjust path based on your structure
+import { loginUser } from "../api/api"; // adjust path
+import { useDispatch } from "react-redux";
+import { setUser, setToken } from "../redux/userSlice";
 
-const Login = () => {
+const Login: React.FC = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     const [form, setForm] = useState({
         username: "",
@@ -11,6 +14,7 @@ const Login = () => {
     });
 
     const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -19,30 +23,44 @@ const Login = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+        setLoading(true);
+
         try {
             const res = await loginUser(form);
-            // Save token or user info here if needed
-            localStorage.setItem("token", res.token); // optional, depending on your backend
-            localStorage.setItem("user", form.username)
+
+            // Save token and user info in Redux store
+            dispatch(setToken(res.token));
+            localStorage.setItem("token", res.token);
+            localStorage.setItem("user", form.username);
             localStorage.setItem("role", res.role);
+
+            // Fetch current user details with token
             const response = await fetch(`https://flightapp-backend-new.uc.r.appspot.com/api/v1/users/me`, {
                 headers: {
-                    'Authorization': `Bearer ${res.token}`,
-                    'Content-Type': 'application/json'
+                    Authorization: `Bearer ${res.token}`,
+                    "Content-Type": "application/json",
                 },
             });
 
             if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+
             const userData = await response.json();
+
+            // Update Redux user state with full user data
+            dispatch(setUser(userData));
+
+            // Optionally store userId in localStorage
             localStorage.setItem("userId", userData.userId);
 
-            navigate('/home', { state: { fromLogin: true } });
+            navigate("/", { state: { fromLogin: true } });
         } catch (err: any) {
             const errMsg =
                 err.response?.data?.message ||
                 err.response?.data ||
                 "Login failed. Please check your credentials.";
             setError(errMsg);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -50,11 +68,11 @@ const Login = () => {
         <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light">
             <div className="bg-white shadow-lg rounded-3 p-4 w-100" style={{ maxWidth: "400px" }}>
                 <h2 className="text-center text-dark mb-4">Log In</h2>
+
                 {error && (
-                    <div className="alert alert-danger">
-                        {typeof error === "string" ? error : JSON.stringify(error)}
-                    </div>
+                    <div className="alert alert-danger">{typeof error === "string" ? error : JSON.stringify(error)}</div>
                 )}
+
                 <form onSubmit={handleSubmit}>
                     <div className="mb-3">
                         <input
@@ -65,8 +83,10 @@ const Login = () => {
                             onChange={handleChange}
                             required
                             className="form-control"
+                            disabled={loading}
                         />
                     </div>
+
                     <div className="mb-3">
                         <input
                             name="password"
@@ -77,21 +97,18 @@ const Login = () => {
                             onChange={handleChange}
                             required
                             className="form-control"
+                            disabled={loading}
                         />
                     </div>
-                    <button
-                        type="submit"
-                        className="btn btn-primary w-100 py-2"
-                    >
-                        Login
+
+                    <button type="submit" className="btn btn-primary w-100 py-2" disabled={loading}>
+                        {loading ? "Logging in..." : "Login"}
                     </button>
                 </form>
+
                 <p className="text-center text-muted mt-4">
                     Don’t have an account?{" "}
-                    <span
-                        onClick={() => navigate("/register")}
-                        className="text-primary cursor-pointer"
-                    >
+                    <span onClick={() => navigate("/register")} className="text-primary cursor-pointer">
                         Register
                     </span>
                 </p>

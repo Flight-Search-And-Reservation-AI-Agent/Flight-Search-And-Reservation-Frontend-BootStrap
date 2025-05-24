@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
-
-interface User {
-    id: string;
-    username: string;
-    email: string;
-    // Add more fields if needed
-}
+import { updateUser } from '../../api/api';
+import type { User } from '../../types';
+import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { logout } from '../../redux/userSlice';
 
 const EditProfile: React.FC = () => {
     const [user, setUser] = useState<User | null>(null);
-    const [formData, setFormData] = useState<Partial<User>>({});
+    const [formData, setFormData] = useState<Partial<User & { password?: string }>>({});
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState<string | null>(null);
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
 
-    // Fetch current user data
     useEffect(() => {
         const fetchUser = async () => {
             const token = localStorage.getItem('token');
@@ -24,7 +23,7 @@ const EditProfile: React.FC = () => {
             }
 
             try {
-                const response = await fetch('http://localhost:8080/api/v1/users/me', {
+                const response = await fetch('https://flightapp-backend-new.uc.r.appspot.com/api/v1/users/me', {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -48,13 +47,11 @@ const EditProfile: React.FC = () => {
         fetchUser();
     }, []);
 
-    // Handle input changes
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    // Handle form submission
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
@@ -66,23 +63,19 @@ const EditProfile: React.FC = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8080/api/v1/users/${user.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(formData),
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Update failed: ${errorText}`);
+            // Avoid sending blank password
+            const dataToSend = { ...formData };
+            if (!formData.password) {
+                delete dataToSend.password;
             }
 
-            const updatedUser: User = await response.json();
-            setUser(updatedUser);
+            const updatedUser = await updateUser(user.userId, dataToSend);
             setMessage('Profile updated successfully!');
+            setUser(updatedUser);
+            setFormData({ ...formData, password: '' }); 
+            dispatch(logout()); // Clears token + user
+            navigate('/login'); 
+            window.location.replace(window.location.href);
         } catch (error: any) {
             console.error('Update error:', error);
             setMessage(error.message || 'An error occurred while updating the profile');
@@ -129,7 +122,18 @@ const EditProfile: React.FC = () => {
                         />
                     </div>
 
-                    {/* Add more fields as needed */}
+                    <div className="mb-3">
+                        <label htmlFor="password" className="form-label">New Password (optional)</label>
+                        <input
+                            type="password"
+                            name="password"
+                            id="password"
+                            className="form-control"
+                            value={formData.password || ''}
+                            onChange={handleChange}
+                            placeholder="Leave blank to keep current password"
+                        />
+                    </div>
 
                     <button type="submit" className="btn btn-primary">Save Changes</button>
                 </form>
