@@ -3,7 +3,11 @@ import axios from "axios";
 import type { Aircraft, Airport, AuthResponse, Flight, FlightRequest, Reservation, ReservationRequest, User, Group, ChecklistItem, CreateTripGroupPayload } from "../types";
 const API_BASE_URL = "https://flightapp-backend-new.uc.r.appspot.com/api/v1";
 const USER_BASE_URL = "https://flightapp-backend-new.uc.r.appspot.com/api";
+const SEARCH_BASE_URL = "https://flightapp-backend-new.uc.r.appspot.com";
 
+// const API_BASE_URL = "http://localhost:8080/api/v1";
+// const USER_BASE_URL = "http://localhost:8080/api";
+// const SEARCH_BASE_URL= "http://localhost:8080";
 const getAuthToken = () => {
   return localStorage.getItem("token"); // or sessionStorage based on your login setup
 };
@@ -114,9 +118,9 @@ export const searchFlights = async (
   departureDate: string // Expected format: "2025-04-06T10:00"
 ): Promise<Flight[]> => {
   const formattedDate = toISOLocalDateTime(departureDate);
-  const url = `${API_BASE_URL}/flights/search?origin=${origin}&destination=${destination}&departureDate=${formattedDate}`;
+  const url = `${SEARCH_BASE_URL}/flight-results/search?origin=${origin}&destination=${destination}&departureDate=${formattedDate}`;
   
-  const response = await axiosInstance.get<Flight[]>(url);
+  const response = await axios.get<Flight[]>(url);
   return response.data;
 };
 
@@ -142,12 +146,13 @@ export const updateFlightById = async (
 
 export const getFlightById = async (id: string): Promise<FlightRequest> => {
   const response = await axiosInstance.get<FlightRequest>(`${API_BASE_URL}/flights/${id}`);
+  console.log(response);
   return response.data;
 };
 
 // 🛬 Airports
 export const getAllAirports = async (): Promise<Airport[]> => {
-  const response = await axiosInstance.get<Airport[]>(`${API_BASE_URL}/airports`);
+  const response = await axios.get<Airport[]>(`${SEARCH_BASE_URL}/flight-results/cities`);
   return response.data;
 };
 
@@ -230,6 +235,20 @@ export const fetchUserReservations = async (userId: string) => {
   });
   return response.data;
 };
+
+export const bookReservation = async (
+  flightId: string,
+  userId: string,
+  passengers: { name: string; age: number; gender: string }[]
+): Promise<Reservation> => {
+  const response = await axiosInstance.post<Reservation>(`${API_BASE_URL}/reservations`, {
+    flightId,
+    userId,
+    passengers,
+  });
+  return response.data;
+};
+
 
 
 // //polls

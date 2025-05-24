@@ -20,6 +20,8 @@ const Header = () => {
     const logout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("role");
         setIsLoggedIn(false);
         setUsername("");
         navigate("/login");
@@ -92,7 +94,7 @@ const Header = () => {
     return (
         <header className={`bg-white shadow-sm sticky-top border-bottom transition-all ${isVisible ? "top-0" : "-top-100"} z-1030`}>
             <nav className="navbar navbar-expand-lg px-4 px-lg-5">
-                <Link to="/home" className="navbar-brand d-flex align-items-center gap-2 fs-3 fw-bold text-primary">
+                <Link to="/" className="navbar-brand d-flex align-items-center gap-2 fs-3 fw-bold text-primary">
                     ✈️ <span className="text-dark">SkySync</span>
                 </Link>
 
@@ -125,7 +127,7 @@ const Header = () => {
 
                         {!isLoggedIn ? (
                             <li className="nav-item ms-3">
-                                <Link to="/">
+                                <Link to="/login">
                                     <button className="btn btn-primary px-4">Sign In</button>
                                 </Link>
                             </li>
@@ -158,7 +160,7 @@ const Header = () => {
                                                 Profile
                                             </button>
                                         </li>
-                                        <li>
+                                        {/* <li>
                                             <button
                                                 className="dropdown-item"
                                                 onClick={() => {
@@ -168,7 +170,7 @@ const Header = () => {
                                             >
                                                 Settings
                                             </button>
-                                        </li>
+                                        </li> */}
                                         <li><hr className="dropdown-divider" /></li>
                                         <li>
                                             <button

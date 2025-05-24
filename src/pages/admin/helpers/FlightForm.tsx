@@ -16,18 +16,29 @@ const FlightForm = ({ initialData, onSubmit, isEdit = false }: Props) => {
         destinationAirportId: "",
         aircraftId: "",
         price: 0,
+        origin: { name: "" },
+        destination: { name: "" },
+        aircraft: { airline: "" },
     });
 
     useEffect(() => {
-        if (initialData) setFormData(initialData);
+        if (initialData) {
+            setFormData({
+                ...initialData,
+                origin: initialData.origin || { name: "" },
+                destination: initialData.destination || { name: "" },
+                aircraft: initialData.aircraft || { airline: "" },
+            });
+        }
     }, [initialData]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: name === "price" ? parseFloat(value) : value,
-        }));
+        if (name === "price") {
+            setFormData((prev) => ({ ...prev, price: parseFloat(value) }));
+        } else {
+            setFormData((prev) => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -109,10 +120,7 @@ const FlightForm = ({ initialData, onSubmit, isEdit = false }: Props) => {
                 />
             </div>
             <div className="d-flex justify-content-end">
-                <button
-                    type="submit"
-                    className="btn btn-primary"
-                >
+                <button type="submit" className="btn btn-primary">
                     {isEdit ? "Update Flight" : "Add Flight"}
                 </button>
             </div>

@@ -17,8 +17,8 @@ const Reservations = () => {
     const [form, setForm] = useState<ReservationRequest>({
         userId: '',
         flightId: '',
-        seatNumber: '',
-        status: 'BOOKED',
+        passengers: [],
+        status: 'CONFIRMED',
     });
     const [editId, setEditId] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
@@ -76,7 +76,7 @@ const Reservations = () => {
                 setReservations(prev => [...prev, created]);
             }
 
-            setForm({ userId: '', flightId: '', seatNumber: '', status: 'BOOKED' });
+            setForm({ userId: '', flightId: '', passengers: [], status: 'CONFIRMED' });
             setEditId(null);
             setShowForm(false);
         } catch (err) {
@@ -88,7 +88,7 @@ const Reservations = () => {
         setForm({
             userId: r.user.userId,
             flightId: r.flight.flightId,
-            seatNumber: r.seatNumber,
+            passengers: r.passengers,
             status: r.status,
         });
         setEditId(r.reservationId);
@@ -111,6 +111,28 @@ const Reservations = () => {
         }
     };
 
+    const handlePassengerChange = (index: number, field: string, value: any) => {
+        const updatedPassengers = [...form.passengers];
+        updatedPassengers[index] = {
+            ...updatedPassengers[index],
+            [field]: value,
+        };
+        setForm(f => ({ ...f, passengers: updatedPassengers }));
+    };
+
+    const addPassenger = () => {
+        setForm(f => ({
+            ...f,
+            passengers: [...f.passengers, { name: '', age: 0, gender: 'MALE' }],
+        }));
+    };
+
+    const removePassenger = (index: number) => {
+        const updatedPassengers = [...form.passengers];
+        updatedPassengers.splice(index, 1);
+        setForm(f => ({ ...f, passengers: updatedPassengers }));
+    };
+
     return (
         <div className="container py-5">
             <h2 className="h3 mb-4">Reservations</h2>
@@ -118,7 +140,7 @@ const Reservations = () => {
             <button
                 className="btn btn-primary mb-4"
                 onClick={() => {
-                    setForm({ userId: '', flightId: '', seatNumber: '', status: 'BOOKED' });
+                    setForm({ userId: '', flightId: '', passengers: [], status: 'CONFIRMED' });
                     setEditId(null);
                     setShowForm(true);
                 }}
@@ -168,7 +190,7 @@ const Reservations = () => {
                         onChange={e => setSelectedStatus(e.target.value)}
                     >
                         <option value="all">All</option>
-                        <option value="BOOKED">BOOKED</option>
+                        <option value="CONFIRMED">CONFIRMED</option>
                         <option value="CANCELLED">CANCELLED</option>
                     </select>
                 </div>
@@ -181,7 +203,7 @@ const Reservations = () => {
                         <th>Reservation ID</th>
                         <th>Username</th>
                         <th>Flight Number</th>
-                        <th>Seat</th>
+                        <th>Passengers</th>
                         <th>Status</th>
                         <th>Time</th>
                         <th>Actions</th>
@@ -193,10 +215,16 @@ const Reservations = () => {
                             <td>{r.reservationId}</td>
                             <td>{r.user.username}</td>
                             <td>{r.flight.flightNumber}</td>
-                            <td>{r.seatNumber}</td>
+                            <td>
+                                {r.passengers.map((p, idx) => (
+                                    <div key={idx}>
+                                        {p.name} ({p.gender}, {p.age})
+                                    </div>
+                                ))}
+                            </td>
                             <td>
                                 <span
-                                    className={`badge ${r.status === 'BOOKED' ? 'bg-success' : 'bg-danger'}`}
+                                    className={`badge ${r.status === 'CONFIRMED' ? 'bg-success' : 'bg-danger'}`}
                                 >
                                     {r.status}
                                 </span>
@@ -209,7 +237,7 @@ const Reservations = () => {
                                 >
                                     Edit
                                 </button>
-                                {r.status === 'BOOKED' && (
+                                {r.status === 'CONFIRMED' && (
                                     <button
                                         className="btn btn-danger btn-sm"
                                         onClick={() => handleCancel(r.reservationId)}
@@ -226,7 +254,7 @@ const Reservations = () => {
             {/* Create/Edit Form Modal */}
             {showForm && (
                 <div className="modal show d-block" tabIndex={-1} style={{ display: 'block' }}>
-                    <div className="modal-dialog">
+                    <div className="modal-dialog modal-lg">
                         <div className="modal-content">
                             <div className="modal-header">
                                 <h5 className="modal-title">
@@ -258,13 +286,43 @@ const Reservations = () => {
                                     />
                                 </div>
                                 <div className="mb-3">
-                                    <label className="form-label">Seat Number</label>
-                                    <input
-                                        className="form-control"
-                                        placeholder="Seat Number"
-                                        value={form.seatNumber || ''}
-                                        onChange={e => setForm(f => ({ ...f, seatNumber: e.target.value }))}
-                                    />
+                                    <label className="form-label">Passengers</label>
+                                    {form.passengers.map((p, index) => (
+                                        <div key={index} className="d-flex gap-2 mb-2 align-items-center">
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder="Name"
+                                                value={p.name}
+                                                onChange={e => handlePassengerChange(index, 'name', e.target.value)}
+                                            />
+                                            <input
+                                                type="number"
+                                                className="form-control"
+                                                placeholder="Age"
+                                                value={p.age}
+                                                onChange={e => handlePassengerChange(index, 'age', Number(e.target.value))}
+                                            />
+                                            <select
+                                                className="form-select"
+                                                value={p.gender}
+                                                onChange={e => handlePassengerChange(index, 'gender', e.target.value)}
+                                            >
+                                                <option value="MALE">Male</option>
+                                                <option value="FEMALE">Female</option>
+                                                <option value="OTHER">Other</option>
+                                            </select>
+                                            <button
+                                                className="btn btn-outline-danger"
+                                                onClick={() => removePassenger(index)}
+                                            >
+                                                &times;
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <button className="btn btn-outline-primary" onClick={addPassenger}>
+                                        Add Passenger
+                                    </button>
                                 </div>
                                 <div className="mb-3">
                                     <label className="form-label">Status</label>
@@ -273,7 +331,7 @@ const Reservations = () => {
                                         value={form.status}
                                         onChange={e => setForm(f => ({ ...f, status: e.target.value as any }))}
                                     >
-                                        <option value="BOOKED">BOOKED</option>
+                                        <option value="CONFIRMED">CONFIRMED</option>
                                         <option value="CANCELLED">CANCELLED</option>
                                     </select>
                                 </div>
