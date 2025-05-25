@@ -25,7 +25,7 @@ const GroupChat: React.FC<Props> = ({ groupId, userId, username }) => {
 
     // Connect WebSocket
     useEffect(() => {
-        const socket = new SockJS('https://flightapp-backend-new.uc.r.appspot.com/ws'); // Adjust if different
+        const socket = new SockJS('http://localhost:8080/ws'); // Adjust if different
         const client = new Client({
             webSocketFactory: () => socket,
             onConnect: () => {

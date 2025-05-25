@@ -1,19 +1,17 @@
 
 import axios from "axios";
 import type { Aircraft, Airport, AuthResponse, Flight, FlightRequest, Reservation, ReservationRequest, User, Group, ChecklistItem, CreateTripGroupPayload } from "../types";
-const API_BASE_URL = "https://flightapp-backend-new.uc.r.appspot.com/api/v1";
-const USER_BASE_URL = "https://flightapp-backend-new.uc.r.appspot.com/api";
-const SEARCH_BASE_URL = "https://flightapp-backend-new.uc.r.appspot.com";
+// const API_BASE_URL = "https://flightapp-backend-new.uc.r.appspot.com/api/v1";
+// const USER_BASE_URL = "https://flightapp-backend-new.uc.r.appspot.com/api";
+// const SEARCH_BASE_URL = "https://flightapp-backend-new.uc.r.appspot.com";
 
-// const API_BASE_URL = "http://localhost:8080/api/v1";
-// const USER_BASE_URL = "http://localhost:8080/api";
-// const SEARCH_BASE_URL= "http://localhost:8080";
+const API_BASE_URL = "http://localhost:8080/api/v1";
+const USER_BASE_URL = "http://localhost:8080/api";
+const SEARCH_BASE_URL= "http://localhost:8080";
 const getAuthToken = () => {
   return localStorage.getItem("token"); // or sessionStorage based on your login setup
 };
-
-
-
+console.log(localStorage.getItem("token"))
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
    withCredentials: true,
@@ -143,7 +141,6 @@ export const updateFlightById = async (
 
 export const getFlightById = async (id: string): Promise<FlightRequest> => {
   const response = await axiosInstance.get<FlightRequest>(`${API_BASE_URL}/flights/${id}`);
-  console.log(response);
   return response.data;
 };
 

@@ -64,7 +64,7 @@ const PollsSection = ({ tripGroupId, userId }: { tripGroupId: string; userId: st
     };
 
     const connectWebSocket = () => {
-        const socket = new SockJS('https://flightapp-backend-new.uc.r.appspot.com/ws'); // Adjust path if needed
+        const socket = new SockJS('http://localhost:8080/ws'); // Adjust path if needed
         stompClient.current = Stomp.over(socket);
         // Optional: Enable debug logs for STOMP:
         // stompClient.current.debug = (msg: string) => { console.log(msg); };
