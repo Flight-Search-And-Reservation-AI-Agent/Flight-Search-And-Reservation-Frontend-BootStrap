@@ -35,7 +35,7 @@ const Login: React.FC = () => {
             localStorage.setItem("role", res.role);
 
             // Fetch current user details with token
-            const response = await fetch(`https://flightapp-backend-new.uc.r.appspot.com/api/v1/users/me`, {
+            const response = await fetch(`http://localhost:8080/api/v1/users/me`, {
                 headers: {
                     Authorization: `Bearer ${res.token}`,
                     "Content-Type": "application/json",

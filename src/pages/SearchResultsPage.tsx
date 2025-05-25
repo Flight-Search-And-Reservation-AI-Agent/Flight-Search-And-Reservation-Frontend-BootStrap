@@ -475,7 +475,7 @@ const SearchResultsPage: React.FC = () => {
                                 <div
                                     key={flight.flightId}
                                     className="col-12"
-                                    onClick={() => navigate("/flight-details", { state: { flight } })}
+                                    onClick={() => navigate(`/checkout/${flight.flightId}`, { state: { flight } })}
                                     style={{ cursor: "pointer" }}
                                 >
                                     <div className="card shadow-sm h-100">
