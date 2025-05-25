@@ -20,6 +20,8 @@ const SearchResultsPage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
+    
+
     const {
         flights = [],
         origin: initialOrigin,

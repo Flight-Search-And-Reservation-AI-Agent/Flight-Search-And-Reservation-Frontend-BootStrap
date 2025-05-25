@@ -111,8 +111,6 @@ export default function FlightSearchForm() {
                                         );
                                     }}
                                 />
-
-
                             </div>
                         </div>
                         <div className="col-md-4 col-12">
@@ -126,7 +124,6 @@ export default function FlightSearchForm() {
                                     required
                                     min={new Date().toISOString().split("T")[0]} // restrict to today and future
                                 />
-
                             </div>
                         </div>
                     </div>

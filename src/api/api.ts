@@ -12,10 +12,10 @@ const getAuthToken = () => {
   return localStorage.getItem("token"); // or sessionStorage based on your login setup
 };
 
-// const authHeader = () => {
-//   const token = getAuthToken();
-//   return token ? { Authorization: `Bearer ${token}` } : {};
-// };
+const authHeader = () => {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
