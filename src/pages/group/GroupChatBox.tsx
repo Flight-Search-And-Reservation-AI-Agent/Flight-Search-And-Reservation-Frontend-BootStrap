@@ -15,7 +15,7 @@ const GroupChat: React.FC<Props> = ({ groupId, userId, username }) => {
     const [newMessage, setNewMessage] = useState('');
     const stompClient = useRef<Client | null>(null);
     const chatEndRef = useRef<HTMLDivElement | null>(null);
-
+    // const jwtToken =localStorage.getItem("token")
     // Fetch old messages on mount
     useEffect(() => {
         fetchChatMessages(groupId)
@@ -25,7 +25,10 @@ const GroupChat: React.FC<Props> = ({ groupId, userId, username }) => {
 
     // Connect WebSocket
     useEffect(() => {
-        const socket = new SockJS('http://localhost:8080/ws'); // Adjust if different
+        // Remove token from the URL
+        const socketUrl = `https://flight-search-and-reservation-app.onrender.com/ws`;
+        const socket = new SockJS(socketUrl);
+
         const client = new Client({
             webSocketFactory: () => socket,
             onConnect: () => {
@@ -48,7 +51,8 @@ const GroupChat: React.FC<Props> = ({ groupId, userId, username }) => {
             client.deactivate();
             console.log('WebSocket connection closed');
         };
-    }, [groupId]);
+    }, [groupId]);  // Remove jwtToken dependency since token is no longer used
+    
 
     // Scroll to latest message
     useEffect(() => {
