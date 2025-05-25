@@ -27,7 +27,6 @@ const Login: React.FC = () => {
 
         try {
             const res = await loginUser(form);
-
             // Save token and user info in Redux store
             dispatch(setToken(res.token));
             localStorage.setItem("token", res.token);
@@ -35,7 +34,7 @@ const Login: React.FC = () => {
             localStorage.setItem("role", res.role);
 
             // Fetch current user details with token
-            const response = await fetch(`http://localhost:8080/api/v1/users/me`, {
+            const response = await fetch(`https://flight-search-and-reservation-app.onrender.com/api/v1/users/me`, {
                 headers: {
                     Authorization: `Bearer ${res.token}`,
                     "Content-Type": "application/json",
