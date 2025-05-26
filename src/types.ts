@@ -53,6 +53,7 @@ export type Aircraft = {
   aircraftId: string;
   model: string;
   capacity: number;
+  airline: string;
 };
 
 // export type User = {
