@@ -12,7 +12,6 @@ const GroupDashboard: React.FC = () => {
     const userId = localStorage.getItem('userId');
 
     useEffect(() => {
-        console.log(userId)
         const fetchGroups = async () => {
             if (!userId) {
                 setIsLoggedIn(false);

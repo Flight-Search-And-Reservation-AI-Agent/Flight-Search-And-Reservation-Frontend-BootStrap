@@ -12,7 +12,6 @@ const SEARCH_BASE_URL= "https://flight-search-and-reservation-app.onrender.com";
 const getAuthToken = () => {
   return localStorage.getItem("token"); // or sessionStorage based on your login setup
 };
-console.log(localStorage.getItem("token"))
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -151,6 +150,7 @@ export const getFlightById = async (id: string): Promise<FlightRequest> => {
 // 🛬 Airports
 export const getAllAirports = async (): Promise<Airport[]> => {
   const response = await axios.get<Airport[]>(`${SEARCH_BASE_URL}/flight-results/cities`);
+  console.log(response)
   return response.data;
 };
 
@@ -185,6 +185,7 @@ export const getAllAircraft = async (): Promise<Aircraft[]> => {
 export const addAircraft = async (aircraft: {
   model: string;
   capacity: number;
+  airline: string;
 }) => {
   const response = await axiosInstance.post(`${API_BASE_URL}/aircrafts`, aircraft);
   return response.data;
@@ -192,7 +193,7 @@ export const addAircraft = async (aircraft: {
 
 export const updateAircraft = async (
   id: string,
-  aircraft: { model: string; capacity: number }
+  aircraft: { model: string; capacity: number; airline: string}
 ) => {
   const response = await axiosInstance.put(`${API_BASE_URL}/aircrafts/${id}`, aircraft);
   return response.data;
